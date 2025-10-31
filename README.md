@@ -1,9 +1,9 @@
-# 🍽️ AI Nutrition Advisor for Anganwadi Workers
+# 🍽️ AI Nutrition Advisor for Karnataka Children
 
-A comprehensive Streamlit-based application that helps Anganwadi workers generate balanced weekly meal plans using AI-based recommendations and optimization algorithms.
+A comprehensive Flask-based web application that helps Anganwadi workers generate balanced weekly meal plans using AI-based recommendations and optimization algorithms.
 
-![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)
-![Streamlit](https://img.shields.io/badge/Streamlit-1.28.0-red.svg)
+![Python](https://img.shields.io/badge/Python-3.13-blue.svg)
+![Flask](https://img.shields.io/badge/Flask-3.0.0-red.svg)
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
 
 ## 🎯 Purpose
@@ -22,30 +22,35 @@ This application is designed to help Anganwadi workers create nutritionally bala
 
 ### User Interface
 
-- **🥗 Ingredient Selection**: Multi-select interface organized by food categories
-- **📈 Visual Analytics**: Interactive charts using Plotly
+### User Interface
+
+- **🥗 66 Ingredients Database**: Comprehensive nutrition data across 11 categories
+- **📈 14 Interactive Charts**: Powered by Chart.js with multiple visualization types
 - **📥 Multiple Export Formats**: CSV, JSON, and PDF downloads
-- **🎨 Intuitive Design**: Clean, user-friendly interface with emojis
+- **🎨 Beautiful Design**: Modern UI with 25+ CSS animations and glass-morphism
+- **📱 Mobile Responsive**: Works seamlessly on all devices
 
 ### Advanced Features
 
-- **🌐 Multi-Language Support**: English, Hindi, Telugu, and Tamil
+- **� 25+ Animations**: Smooth transitions, gradient shifts, and interactive effects
 - **⭐ Nutrition Scoring**: 0-100 score for meal plan quality
 - **📊 Analytics Dashboard**: Track effectiveness across budgets and age groups
-- **🗄️ Database Storage**: SQLite for storing meal plans and feedback
+- **🗄️ Database Storage**: SQLite for storing meal plans and data
 - **🔄 Meal Variety**: Automatically varies meals across the week
+- **🎯 Category-wise Analysis**: Analyze nutrition by food categories
 
 ## 🏗️ Technology Stack
 
 | Component | Technology |
 |-----------|-----------|
-| Frontend & Backend | Streamlit |
-| Database | SQLite |
-| Optimization | PuLP (Linear Programming) |
-| Data Processing | Pandas, NumPy |
-| Visualization | Plotly |
-| PDF Export | FPDF |
-| Translation | Googletrans |
+| Backend | Flask 3.0.0 |
+| Frontend | Bootstrap 5, Chart.js 4.4.0, jQuery 3.7.0 |
+| Database | SQLite3 |
+| Optimization | PuLP 2.7.0 (Linear Programming) |
+| Data Processing | Pandas 2.1.1, NumPy 1.26.0 |
+| Visualization | Chart.js (14 chart types) |
+| PDF Export | FPDF 1.7.2 |
+| UI Framework | Font Awesome 6.4.0, Google Fonts (Poppins) |
 
 ## 📋 Prerequisites
 
@@ -59,9 +64,9 @@ This application is designed to help Anganwadi workers create nutritionally bala
 ### Step 1: Clone or Download the Repository
 
 ```powershell
-# If you have git installed
-git clone <repository-url>
-cd "ai nutrition advisor3w"
+# Clone the repository
+git clone https://github.com/yogeeshsm/ai-nutrition-advisor3.git
+cd ai-nutrition-advisor3
 
 # Or simply download and extract the ZIP file
 ```
@@ -98,45 +103,43 @@ This will create the SQLite database and populate it with sample ingredient data
 ### Running the Application
 
 ```powershell
-streamlit run app.py
+python flask_app.py
 ```
 
-The application will automatically open in your default web browser at `http://localhost:8501`
+The application will automatically open at `http://localhost:5000`
 
 ### Using the Meal Planner
 
-1. **Select Ingredients**
-   - Choose from available ingredients organized by category
-   - Use quick selection buttons (Select All, Basic Only, Recommended)
-   - View cost and calorie information for each ingredient
-
-2. **Set Parameters**
-   - Enter number of children
+1. **Set Parameters**
    - Select age group (1-3, 3-6, or 6-10 years)
-   - Input weekly budget in rupees
+   - Set weekly budget
 
-3. **Generate Plan**
+2. **Generate Plan**
    - Click "Generate Meal Plan" button
    - Wait for optimization (usually takes 5-15 seconds)
-   - Review the generated 7-day meal plan
+   - Review the generated 7-day meal plan with all meals
 
-4. **Analyze Results**
+3. **Analyze Results**
    - View nutrition score (0-100)
-   - Check nutritional breakdown charts
+   - Explore 14 interactive visualizations across 4 categories:
+     * Macronutrients (Pie, Bar, Doughnut)
+     * Daily Breakdown (Line, Multi-line)
+     * By Category (Polar Area, Radar, Grouped Bar)
+     * Micronutrients (Bar, Doughnut)
    - See day-wise meal details
    - Review cost breakdown
 
-5. **Export Plan**
+4. **Export Plan**
    - Download as CSV for spreadsheet use
    - Export as JSON for data processing
    - Generate PDF for printing
 
 ### Using the Analytics Dashboard
 
-1. Navigate to "Analytics Dashboard" from sidebar
-2. View summary statistics:
-   - Total meal plans generated
-   - Average nutrition scores
+1. Navigate to "Analytics" from navigation bar
+2. View comprehensive analytics:
+   - Budget vs Nutrition Score scatter plots
+   - Age group comparison charts
    - Cost effectiveness
 3. Analyze trends:
    - Budget vs nutrition score
