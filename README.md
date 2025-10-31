@@ -1,8 +1,18 @@
+---
+title: AI Nutrition Advisor
+emoji: 🍽️
+colorFrom: purple
+colorTo: pink
+sdk: docker
+pinned: false
+license: mit
+---
+
 # 🍽️ AI Nutrition Advisor for Karnataka Children
 
 A comprehensive Flask-based web application that helps Anganwadi workers generate balanced weekly meal plans using AI-based recommendations and optimization algorithms.
 
-![Python](https://img.shields.io/badge/Python-3.13-blue.svg)
+![Python](https://img.shields.io/badge/Python-3.11-blue.svg)
 ![Flask](https://img.shields.io/badge/Flask-3.0.0-red.svg)
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
 
