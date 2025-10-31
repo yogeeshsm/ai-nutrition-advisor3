@@ -1,0 +1,301 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics - AI Nutrition Advisor{% endblock %}
+
+{% block content %}
+<div class="text-center mb-5">
+    <h1 class="display-4 fw-bold" style="color: white;">
+        <i class="fas fa-chart-line"></i> Analytics Dashboard
+    </h1>
+    <p class="lead" style="color: white; opacity: 0.9;">
+        Track meal plan effectiveness and usage patterns
+    </p>
+</div>
+
+<!-- Summary Metrics -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="metric-card">
+            <i class="fas fa-clipboard-list fa-2x mb-2"></i>
+            <p>Total Plans</p>
+            <h3>{{ summary.total_plans }}</h3>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="metric-card">
+            <i class="fas fa-star fa-2x mb-2"></i>
+            <p>Avg Nutrition Score</p>
+            <h3>{{ summary.avg_score }}/100</h3>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="metric-card">
+            <i class="fas fa-rupee-sign fa-2x mb-2"></i>
+            <p>Avg Cost</p>
+            <h3>₹{{ summary.avg_cost }}</h3>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="metric-card">
+            <i class="fas fa-children fa-2x mb-2"></i>
+            <p>Avg Children</p>
+            <h3>{{ summary.avg_children|int }}</h3>
+        </div>
+    </div>
+</div>
+
+{% if summary.total_plans > 0 %}
+<!-- Enhanced Charts -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="nutrition-chart">
+            <h5 class="mb-3"><i class="fas fa-chart-scatter"></i> Budget vs Nutrition Score</h5>
+            <canvas id="budgetScoreChart"></canvas>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="nutrition-chart">
+            <h5 class="mb-3"><i class="fas fa-chart-bar"></i> Age Group Distribution</h5>
+            <canvas id="ageGroupChart"></canvas>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="nutrition-chart">
+            <h5 class="mb-3"><i class="fas fa-chart-pie"></i> Score Distribution</h5>
+            <canvas id="scoreDistributionChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="nutrition-chart">
+            <h5 class="mb-3"><i class="fas fa-chart-line"></i> Cost Trend Over Time</h5>
+            <canvas id="costTrendChart"></canvas>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="nutrition-chart">
+            <h5 class="mb-3"><i class="fas fa-chart-area"></i> Children Count Analysis</h5>
+            <canvas id="childrenAnalysisChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Plans Table -->
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-history"></i> Recent Meal Plans
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table meal-plan-table">
+                <thead>
+                    <tr>
+                        <th>Plan Name</th>
+                        <th>Budget</th>
+                        <th>Children</th>
+                        <th>Age Group</th>
+                        <th>Score</th>
+                        <th>Cost</th>
+                        <th>Created</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for plan in recent_plans %}
+                    <tr>
+                        <td>{{ plan.plan_name }}</td>
+                        <td>₹{{ plan.budget }}</td>
+                        <td>{{ plan.num_children }}</td>
+                        <td>{{ plan.age_group }}</td>
+                        <td>
+                            <span class="badge {% if plan.nutrition_score >= 85 %}bg-success{% elif plan.nutrition_score >= 70 %}bg-warning{% else %}bg-danger{% endif %}">
+                                {{ plan.nutrition_score }}/100
+                            </span>
+                        </td>
+                        <td>₹{{ plan.total_cost|round(2) }}</td>
+                        <td>{{ plan.created_at }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% else %}
+<div class="card">
+    <div class="card-body text-center py-5">
+        <i class="fas fa-chart-line fa-5x mb-4" style="color: var(--secondary-color); opacity: 0.3;"></i>
+        <h4>No meal plans generated yet</h4>
+        <p class="text-muted">Start by creating some meal plans to see analytics here!</p>
+        <a href="/" class="btn btn-primary mt-3">
+            <i class="fas fa-plus"></i> Create Meal Plan
+        </a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const budgetVsScore = {{ budget_vs_score|tojson }};
+const ageGroupStats = {{ age_group_stats|tojson }};
+const recentPlans = {{ recent_plans|tojson }};
+
+if (budgetVsScore.length > 0) {
+    // Budget vs Score scatter chart
+    const scatterData = {
+        datasets: [{
+            label: 'Budget vs Nutrition Score',
+            data: budgetVsScore.map(item => ({
+                x: item.budget,
+                y: item.avg_nutrition_score
+            })),
+            backgroundColor: 'rgba(255, 107, 107, 0.7)',
+            pointRadius: 8,
+            pointHoverRadius: 10
+        }]
+    };
+    
+    new Chart(document.getElementById('budgetScoreChart'), {
+        type: 'scatter',
+        data: scatterData,
+        options: {
+            responsive: true,
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Weekly Budget (₹)'
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Avg Nutrition Score'
+                    },
+                    beginAtZero: true,
+                    max: 100
+                }
+            }
+        }
+    });
+    
+    // Score Distribution Pie Chart
+    const scoreRanges = {
+        'Excellent (85-100)': 0,
+        'Good (70-84)': 0,
+        'Fair (50-69)': 0,
+        'Poor (0-49)': 0
+    };
+    
+    recentPlans.forEach(plan => {
+        const score = plan.nutrition_score;
+        if (score >= 85) scoreRanges['Excellent (85-100)']++;
+        else if (score >= 70) scoreRanges['Good (70-84)']++;
+        else if (score >= 50) scoreRanges['Fair (50-69)']++;
+        else scoreRanges['Poor (0-49)']++;
+    });
+    
+    new Chart(document.getElementById('scoreDistributionChart'), {
+        type: 'pie',
+        data: {
+            labels: Object.keys(scoreRanges),
+            datasets: [{
+                data: Object.values(scoreRanges),
+                backgroundColor: ['#28a745', '#4ECDC4', '#FFE66D', '#FF6B6B']
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom' }
+            }
+        }
+    });
+    
+    // Cost Trend Line Chart
+    const sortedPlans = [...recentPlans].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    new Chart(document.getElementById('costTrendChart'), {
+        type: 'line',
+        data: {
+            labels: sortedPlans.map((p, i) => `Plan ${i + 1}`),
+            datasets: [{
+                label: 'Total Cost (₹)',
+                data: sortedPlans.map(p => p.total_cost),
+                borderColor: '#FF6B6B',
+                backgroundColor: 'rgba(255, 107, 107, 0.1)',
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+    
+    // Children Count Analysis
+    const childrenGroups = {};
+    recentPlans.forEach(plan => {
+        const range = plan.num_children < 20 ? '<20' : plan.num_children < 40 ? '20-40' : '40+';
+        childrenGroups[range] = (childrenGroups[range] || 0) + 1;
+    });
+    
+    new Chart(document.getElementById('childrenAnalysisChart'), {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(childrenGroups),
+            datasets: [{
+                data: Object.values(childrenGroups),
+                backgroundColor: ['#FF6B6B', '#4ECDC4', '#FFE66D']
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom' }
+            }
+        }
+    });
+}
+
+if (ageGroupStats.length > 0) {
+    // Age group bar chart
+    const barData = {
+        labels: ageGroupStats.map(item => item.age_group),
+        datasets: [{
+            label: 'Number of Plans',
+            data: ageGroupStats.map(item => item.count),
+            backgroundColor: 'rgba(78, 205, 196, 0.7)',
+            borderColor: 'rgba(78, 205, 196, 1)',
+            borderWidth: 2
+        }]
+    };
+    
+    new Chart(document.getElementById('ageGroupChart'), {
+        type: 'bar',
+        data: barData,
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+}
+</script>
+{% endblock %}

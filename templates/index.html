@@ -1,0 +1,841 @@
+{% extends "base.html" %}
+
+{% block title %}Meal Planner - AI Nutrition Advisor{% endblock %}
+
+{% block content %}
+<div class="text-center mb-5">
+    <h1 class="display-4 fw-bold" style="color: white;">
+        <i class="fas fa-utensils"></i> AI Nutrition Advisor
+    </h1>
+    <p class="lead" style="color: white; opacity: 0.9;">
+        Generate Balanced Weekly Meal Plans for Anganwadi Children
+    </p>
+</div>
+
+<!-- Input Section -->
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-edit"></i> Input Details
+    </div>
+    <div class="card-body">
+        <form id="mealPlanForm">
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <label class="form-label">
+                        <i class="fas fa-children"></i> Number of Children
+                    </label>
+                    <input type="number" class="form-control" id="numChildren" value="20" min="1" max="100" required>
+                    <small class="text-muted">Enter number of children to plan meals for</small>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">
+                        <i class="fas fa-wallet"></i> Weekly Budget (₹)
+                    </label>
+                    <input type="number" class="form-control" id="budget" value="2000" min="100" step="100" required>
+                    <div class="mt-2">
+                        <small class="badge bg-info" id="perChildWeek">₹100/child/week</small>
+                        <small class="badge bg-success" id="perChildDay">₹14.29/child/day</small>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">
+                        <i class="fas fa-child"></i> Age Group
+                    </label>
+                    <select class="form-select" id="ageGroup">
+                        <option value="1-3 years">1-3 years</option>
+                        <option value="3-6 years" selected>3-6 years</option>
+                        <option value="6-10 years">6-10 years</option>
+                    </select>
+                </div>
+            </div>
+
+            <hr class="my-4">
+
+            <h5 class="mb-3">
+                <i class="fas fa-shopping-basket"></i> Select Available Ingredients
+            </h5>
+            
+            <!-- Quick Selection Buttons -->
+            <div class="mb-4">
+                <button type="button" class="btn btn-sm btn-outline-success me-2" onclick="selectAll()">
+                    <i class="fas fa-check-circle"></i> Select All
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-danger me-2" onclick="clearAll()">
+                    <i class="fas fa-times-circle"></i> Clear All
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-primary me-2" onclick="selectRecommended()">
+                    <i class="fas fa-star"></i> Recommended
+                </button>
+                <span class="badge bg-primary ms-3" id="selectedCount">0 ingredients selected</span>
+            </div>
+
+            <!-- Ingredient Categories -->
+            <div id="ingredientsContainer">
+                {% for cat in ingredients %}
+                <div class="ingredient-category">
+                    <div class="category-header" onclick="toggleCategory('cat{{ loop.index }}')">
+                        <span style="font-size: 1.3rem;">{{ cat.emoji }}</span>
+                        <strong>{{ cat.category }}</strong>
+                        <i class="fas fa-chevron-down float-end"></i>
+                    </div>
+                    <div id="cat{{ loop.index }}" class="category-items">
+                        {% for item in cat.ingredients %}
+                        <div class="ingredient-item">
+                            <div class="ingredient-info">
+                                <input type="checkbox" class="ingredient-checkbox" 
+                                       data-name="{{ item.name }}" 
+                                       onchange="updateCount()">
+                                <span style="font-size: 1.2rem;">{{ item.emoji }}</span>
+                                <strong>{{ item.name }}</strong>
+                            </div>
+                            <div>
+                                <span class="badge bg-warning text-dark">₹{{ item.cost }}/kg</span>
+                                <span class="badge bg-danger">{{ item.calories|int }} kcal</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="text-center mt-5">
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="fas fa-rocket"></i> Generate Meal Plan
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Loading Spinner -->
+<div class="loading-spinner" id="loadingSpinner">
+    <div class="spinner-border text-light" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+    <h4 class="mt-3" style="color: white;">Optimizing meal plan...</h4>
+    <p style="color: white; opacity: 0.9;">This may take 10-20 seconds</p>
+</div>
+
+<!-- Results Section -->
+<div id="resultsSection" style="display: none;">
+    <!-- Summary Metrics -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="metric-card">
+                <i class="fas fa-rupee-sign fa-2x mb-2"></i>
+                <p>Total Cost</p>
+                <h3 id="metricCost">₹0</h3>
+                <small id="budgetStatus">0% of budget</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card">
+                <i class="fas fa-star fa-2x mb-2"></i>
+                <p>Nutrition Score</p>
+                <h3 id="metricScore">0</h3>
+                <small id="scoreStatus">-</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card">
+                <i class="fas fa-fire fa-2x mb-2"></i>
+                <p>Avg Daily Calories</p>
+                <h3 id="metricCalories">0</h3>
+                <small>Per child</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card">
+                <i class="fas fa-dumbbell fa-2x mb-2"></i>
+                <p>Avg Daily Protein</p>
+                <h3 id="metricProtein">0g</h3>
+                <small>Per child</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Weekly Meal Plan Table -->
+    <div class="card">
+        <div class="card-header">
+            <i class="fas fa-calendar-week"></i> 7-Day Meal Schedule
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table meal-plan-table" id="mealPlanTable">
+                    <thead>
+                        <tr>
+                            <th>Day</th>
+                            <th>Meal</th>
+                            <th>Ingredient</th>
+                            <th>Category</th>
+                            <th>Qty/Child</th>
+                            <th>Total Qty</th>
+                            <th>Cost</th>
+                        </tr>
+                    </thead>
+                    <tbody id="mealPlanBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Day-wise Breakdown -->
+    <div class="card">
+        <div class="card-header">
+            <i class="fas fa-calendar-day"></i> Day-wise Breakdown
+        </div>
+        <div class="card-body">
+            <div class="d-flex flex-wrap mb-4" id="dayTabs">
+                <!-- Day tabs will be inserted here -->
+            </div>
+            <div id="dayContent">
+                <!-- Day content will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Nutrition Analysis -->
+    <!-- Enhanced Visualization Section -->
+    <div class="card mb-3">
+        <div class="card-header">
+            <i class="fas fa-chart-line"></i> Advanced Nutritional Visualizations
+        </div>
+        <div class="card-body">
+            <!-- Chart Type Selector -->
+            <div class="btn-group mb-3" role="group">
+                <button type="button" class="btn btn-outline-primary active" onclick="showChartSection('macro')">
+                    <i class="fas fa-chart-pie"></i> Macronutrients
+                </button>
+                <button type="button" class="btn btn-outline-primary" onclick="showChartSection('daily')">
+                    <i class="fas fa-chart-bar"></i> Daily Breakdown
+                </button>
+                <button type="button" class="btn btn-outline-primary" onclick="showChartSection('category')">
+                    <i class="fas fa-chart-doughnut"></i> By Category
+                </button>
+                <button type="button" class="btn btn-outline-primary" onclick="showChartSection('micronutrients')">
+                    <i class="fas fa-atom"></i> Micronutrients
+                </button>
+            </div>
+
+            <!-- Macro Section -->
+            <div id="chartSection-macro" class="chart-section">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-center mb-3">Macronutrient Distribution</h6>
+                        <canvas id="macroChart"></canvas>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-center mb-3">Weekly Requirements vs Achieved</h6>
+                        <canvas id="requirementsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Daily Breakdown Section -->
+            <div id="chartSection-daily" class="chart-section" style="display: none;">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-center mb-3">Daily Calorie Distribution</h6>
+                        <canvas id="dailyCaloriesChart"></canvas>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-center mb-3">Daily Cost Analysis</h6>
+                        <canvas id="dailyCostChart"></canvas>
+                    </div>
+                </div>
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <h6 class="text-center mb-3">Meal-wise Calorie Comparison</h6>
+                        <canvas id="mealComparisonChart" height="80"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Category Section -->
+            <div id="chartSection-category" class="chart-section" style="display: none;">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-center mb-3">Ingredients by Category</h6>
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-center mb-3">Cost Distribution by Category</h6>
+                        <canvas id="categoryCostChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Micronutrients Section -->
+            <div id="chartSection-micronutrients" class="chart-section" style="display: none;">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-center mb-3">Micronutrient Achievement</h6>
+                        <canvas id="micronutrientRadar"></canvas>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-center mb-3">Fiber & Minerals Weekly Trend</h6>
+                        <canvas id="mineralsTrendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Options -->
+    <div class="card">
+        <div class="card-header">
+            <i class="fas fa-download"></i> Export Meal Plan
+        </div>
+        <div class="card-body">
+            <div class="text-center">
+                <button class="btn btn-secondary me-2" onclick="exportCSV()">
+                    <i class="fas fa-file-csv"></i> Download CSV
+                </button>
+                <button class="btn btn-secondary me-2" onclick="exportPDF()">
+                    <i class="fas fa-file-pdf"></i> Download PDF
+                </button>
+                <button class="btn btn-secondary" onclick="exportJSON()">
+                    <i class="fas fa-file-code"></i> Download JSON
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentPlan = null;
+let macroChart = null;
+let requirementsChart = null;
+let dailyCaloriesChart = null;
+let dailyCostChart = null;
+let mealComparisonChart = null;
+let categoryChart = null;
+let categoryCostChart = null;
+let micronutrientRadar = null;
+let mineralsTrendChart = null;
+
+// Recommended ingredients list
+const recommendedIngredients = [
+    'Rice', 'Wheat Flour (Atta)', 'Moong Dal', 'Toor Dal',
+    'Potato', 'Onion', 'Tomato', 'Spinach (Palak)',
+    'Milk', 'Eggs', 'Cooking Oil', 'Jaggery (Gur)'
+];
+
+// Update budget calculations
+$('#numChildren, #budget').on('input', function() {
+    const children = parseInt($('#numChildren').val()) || 1;
+    const budget = parseFloat($('#budget').val()) || 0;
+    
+    const perChildWeek = budget / children;
+    const perChildDay = budget / (children * 7);
+    
+    $('#perChildWeek').text(`₹${perChildWeek.toFixed(2)}/child/week`);
+    $('#perChildDay').text(`₹${perChildDay.toFixed(2)}/child/day`);
+});
+
+// Toggle category visibility
+function toggleCategory(id) {
+    $(`#${id}`).slideToggle(300);
+}
+
+// Update selected count
+function updateCount() {
+    const count = $('.ingredient-checkbox:checked').length;
+    $('#selectedCount').text(`${count} ingredients selected`);
+}
+
+// Selection functions
+function selectAll() {
+    $('.ingredient-checkbox').prop('checked', true);
+    updateCount();
+}
+
+function clearAll() {
+    $('.ingredient-checkbox').prop('checked', false);
+    updateCount();
+}
+
+function selectRecommended() {
+    $('.ingredient-checkbox').each(function() {
+        const name = $(this).data('name');
+        $(this).prop('checked', recommendedIngredients.includes(name));
+    });
+    updateCount();
+}
+
+// Form submission
+$('#mealPlanForm').on('submit', function(e) {
+    e.preventDefault();
+    
+    // Get selected ingredients
+    const ingredients = [];
+    $('.ingredient-checkbox:checked').each(function() {
+        ingredients.push($(this).data('name'));
+    });
+    
+    if (ingredients.length < 5) {
+        alert('Please select at least 5 ingredients');
+        return;
+    }
+    
+    // Prepare data
+    const data = {
+        num_children: parseInt($('#numChildren').val()),
+        budget: parseFloat($('#budget').val()),
+        age_group: $('#ageGroup').val(),
+        ingredients: ingredients
+    };
+    
+    // Show loading
+    $('#loadingSpinner').addClass('active');
+    $('#resultsSection').hide();
+    
+    // Send request
+    $.ajax({
+        url: '/api/generate-plan',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(data),
+        success: function(response) {
+            currentPlan = response;
+            displayResults(response);
+            $('#loadingSpinner').removeClass('active');
+            $('#resultsSection').show();
+            $('html, body').animate({
+                scrollTop: $('#resultsSection').offset().top - 100
+            }, 1000);
+        },
+        error: function(xhr) {
+            alert('Error: ' + (xhr.responseJSON?.error || 'Failed to generate meal plan'));
+            $('#loadingSpinner').removeClass('active');
+        }
+    });
+});
+
+// Display results
+function displayResults(data) {
+    // Update metrics
+    $('#metricCost').text(`₹${data.summary.total_cost}`);
+    $('#budgetStatus').text(`${data.summary.budget_percentage}% of budget`);
+    $('#metricScore').text(`${data.nutrition_score}/100`);
+    
+    if (data.nutrition_score >= 85) {
+        $('#scoreStatus').text('Excellent');
+    } else if (data.nutrition_score >= 70) {
+        $('#scoreStatus').text('Good');
+    } else {
+        $('#scoreStatus').text('Fair');
+    }
+    
+    $('#metricCalories').text(data.summary.daily_calories);
+    $('#metricProtein').text(`${data.summary.daily_protein}g`);
+    
+    // Build meal plan table
+    let tableHTML = '';
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    
+    days.forEach(day => {
+        const dayData = data.weekly_plan[day];
+        const meals = ['breakfast', 'lunch', 'snack', 'dinner'];
+        
+        meals.forEach(meal => {
+            const mealData = dayData.meals[meal];
+            mealData.items.forEach((item, idx) => {
+                tableHTML += `
+                    <tr>
+                        ${idx === 0 ? `<td rowspan="${mealData.items.length}">${day}</td>` : ''}
+                        ${idx === 0 ? `<td rowspan="${mealData.items.length}">${meal.charAt(0).toUpperCase() + meal.slice(1)}</td>` : ''}
+                        <td>${item.ingredient}</td>
+                        <td>${item.category}</td>
+                        <td>${item.quantity_per_child_g.toFixed(1)}g</td>
+                        <td>${item.total_quantity_g.toFixed(1)}g</td>
+                        <td>₹${item.cost.toFixed(2)}</td>
+                    </tr>
+                `;
+            });
+        });
+    });
+    
+    $('#mealPlanBody').html(tableHTML);
+    
+    // Build day tabs
+    let tabsHTML = '';
+    days.forEach((day, idx) => {
+        tabsHTML += `
+            <div class="day-tab ${idx === 0 ? 'active' : ''}" onclick="showDay('${day}')">
+                ${day}
+            </div>
+        `;
+    });
+    $('#dayTabs').html(tabsHTML);
+    
+    // Show first day
+    showDay(days[0]);
+    
+    // Draw charts
+    drawCharts(data);
+}
+
+// Show day details
+function showDay(day) {
+    $('.day-tab').removeClass('active');
+    $(`.day-tab:contains('${day}')`).addClass('active');
+    
+    const dayData = currentPlan.weekly_plan[day];
+    let html = '';
+    
+    ['breakfast', 'lunch', 'snack', 'dinner'].forEach(meal => {
+        const mealData = dayData.meals[meal];
+        html += `
+            <div class="mb-4">
+                <h5><i class="fas fa-utensils"></i> ${meal.charAt(0).toUpperCase() + meal.slice(1)}</h5>
+                <div class="alert alert-info">
+                    <strong>Items:</strong> ${mealData.items.map(i => `${i.ingredient} (${i.quantity_per_child_g.toFixed(0)}g)`).join(', ')}<br>
+                    <small>
+                        ⚡ ${mealData.nutrition.calories.toFixed(0)} kcal | 
+                        💪 ${mealData.nutrition.protein.toFixed(1)}g protein | 
+                        💰 ₹${mealData.cost.toFixed(2)}
+                    </small>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += `
+        <div class="alert alert-secondary">
+            <strong>Daily Summary</strong><br>
+            Total Cost: ₹${dayData.total_cost.toFixed(2)} | 
+            Calories: ${dayData.total_nutrition.calories.toFixed(0)} | 
+            Protein: ${dayData.total_nutrition.protein.toFixed(1)}g
+        </div>
+    `;
+    
+    $('#dayContent').html(html);
+}
+
+// Chart section switching
+function showChartSection(section) {
+    // Update buttons
+    $('.btn-group button').removeClass('active');
+    $(`.btn-group button[onclick="showChartSection('${section}')"]`).addClass('active');
+    
+    // Hide all sections
+    $('.chart-section').hide();
+    
+    // Show selected section
+    $(`#chartSection-${section}`).show();
+}
+
+// Draw all charts
+function drawCharts(data) {
+    const weeklyNutrition = data.weekly_nutrition;
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    
+    // 1. Macronutrient pie chart
+    const macroData = {
+        labels: ['Protein', 'Carbs', 'Fat'],
+        datasets: [{
+            data: [
+                weeklyNutrition.protein * 4,
+                weeklyNutrition.carbs * 4,
+                weeklyNutrition.fat * 9
+            ],
+            backgroundColor: ['#FF6B6B', '#4ECDC4', '#FFE66D']
+        }]
+    };
+    
+    if (macroChart) macroChart.destroy();
+    macroChart = new Chart(document.getElementById('macroChart'), {
+        type: 'pie',
+        data: macroData,
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+    
+    // Requirements bar chart
+    const nutrients = ['calories', 'protein', 'carbs', 'fat', 'fiber', 'iron', 'calcium'];
+    const required = nutrients.map(n => (data.daily_requirements[n] || 0) * 7);
+    const achieved = nutrients.map(n => weeklyNutrition[n] || 0);
+    
+    const reqData = {
+        labels: nutrients.map(n => n.charAt(0).toUpperCase() + n.slice(1)),
+        datasets: [
+            {
+                label: 'Required',
+                data: required,
+                backgroundColor: 'rgba(78, 205, 196, 0.7)'
+            },
+            {
+                label: 'Achieved',
+                data: achieved,
+                backgroundColor: 'rgba(255, 107, 107, 0.7)'
+            }
+        ]
+    };
+    
+    if (requirementsChart) requirementsChart.destroy();
+    requirementsChart = new Chart(document.getElementById('requirementsChart'), {
+        type: 'bar',
+        data: reqData,
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+    
+    // 2. Daily Calorie Distribution Line Chart
+    const dailyCalories = days.map(day => data.weekly_plan[day].total_nutrition.calories);
+    if (dailyCaloriesChart) dailyCaloriesChart.destroy();
+    dailyCaloriesChart = new Chart(document.getElementById('dailyCaloriesChart'), {
+        type: 'line',
+        data: {
+            labels: days,
+            datasets: [{
+                label: 'Daily Calories',
+                data: dailyCalories,
+                borderColor: '#FF6B6B',
+                backgroundColor: 'rgba(255, 107, 107, 0.1)',
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+    
+    // 3. Daily Cost Line Chart
+    const dailyCosts = days.map(day => data.weekly_plan[day].total_cost);
+    if (dailyCostChart) dailyCostChart.destroy();
+    dailyCostChart = new Chart(document.getElementById('dailyCostChart'), {
+        type: 'line',
+        data: {
+            labels: days,
+            datasets: [{
+                label: 'Daily Cost (₹)',
+                data: dailyCosts,
+                borderColor: '#4ECDC4',
+                backgroundColor: 'rgba(78, 205, 196, 0.1)',
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+    
+    // 4. Meal Comparison Grouped Bar Chart
+    const mealTypes = ['breakfast', 'lunch', 'snack', 'dinner'];
+    const mealData = mealTypes.map(meal => {
+        return days.map(day => data.weekly_plan[day].meals[meal].nutrition.calories);
+    });
+    
+    if (mealComparisonChart) mealComparisonChart.destroy();
+    mealComparisonChart = new Chart(document.getElementById('mealComparisonChart'), {
+        type: 'bar',
+        data: {
+            labels: days,
+            datasets: mealTypes.map((meal, idx) => ({
+                label: meal.charAt(0).toUpperCase() + meal.slice(1),
+                data: mealData[idx],
+                backgroundColor: ['#FF6B6B', '#4ECDC4', '#FFE66D', '#95E1D3'][idx]
+            }))
+        },
+        options: {
+            responsive: true,
+            scales: {
+                x: { stacked: false },
+                y: { beginAtZero: true }
+            }
+        }
+    });
+    
+    // 5. Category Distribution Doughnut Chart
+    const categoryCount = {};
+    days.forEach(day => {
+        mealTypes.forEach(meal => {
+            data.weekly_plan[day].meals[meal].items.forEach(item => {
+                categoryCount[item.category] = (categoryCount[item.category] || 0) + 1;
+            });
+        });
+    });
+    
+    if (categoryChart) categoryChart.destroy();
+    categoryChart = new Chart(document.getElementById('categoryChart'), {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(categoryCount),
+            datasets: [{
+                data: Object.values(categoryCount),
+                backgroundColor: ['#FF6B6B', '#4ECDC4', '#FFE66D', '#95E1D3', '#A8E6CF', '#FFD3B6', '#FFAAA5', '#C7CEEA']
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'right' }
+            }
+        }
+    });
+    
+    // 6. Category Cost Distribution
+    const categoryCost = {};
+    days.forEach(day => {
+        mealTypes.forEach(meal => {
+            data.weekly_plan[day].meals[meal].items.forEach(item => {
+                categoryCost[item.category] = (categoryCost[item.category] || 0) + item.cost;
+            });
+        });
+    });
+    
+    if (categoryCostChart) categoryCostChart.destroy();
+    categoryCostChart = new Chart(document.getElementById('categoryCostChart'), {
+        type: 'polarArea',
+        data: {
+            labels: Object.keys(categoryCost),
+            datasets: [{
+                data: Object.values(categoryCost),
+                backgroundColor: ['rgba(255, 107, 107, 0.7)', 'rgba(78, 205, 196, 0.7)', 'rgba(255, 230, 109, 0.7)', 'rgba(149, 225, 211, 0.7)', 'rgba(168, 230, 207, 0.7)', 'rgba(255, 211, 182, 0.7)']
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'right' }
+            }
+        }
+    });
+    
+    // 7. Micronutrient Radar Chart
+    const microAchieved = {
+        fiber: weeklyNutrition.fiber / (data.daily_requirements.fiber * 7) * 100,
+        iron: weeklyNutrition.iron / (data.daily_requirements.iron * 7) * 100,
+        calcium: weeklyNutrition.calcium / (data.daily_requirements.calcium * 7) * 100,
+        protein: weeklyNutrition.protein / (data.daily_requirements.protein * 7) * 100,
+        carbs: weeklyNutrition.carbs / (data.daily_requirements.carbs * 7) * 100,
+    };
+    
+    if (micronutrientRadar) micronutrientRadar.destroy();
+    micronutrientRadar = new Chart(document.getElementById('micronutrientRadar'), {
+        type: 'radar',
+        data: {
+            labels: ['Fiber', 'Iron', 'Calcium', 'Protein', 'Carbs'],
+            datasets: [{
+                label: 'Achievement %',
+                data: Object.values(microAchieved),
+                backgroundColor: 'rgba(255, 107, 107, 0.2)',
+                borderColor: '#FF6B6B',
+                pointBackgroundColor: '#FF6B6B',
+                pointBorderColor: '#fff',
+                pointHoverBackgroundColor: '#fff',
+                pointHoverBorderColor: '#FF6B6B'
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                r: {
+                    beginAtZero: true,
+                    max: 120,
+                    ticks: {
+                        stepSize: 20
+                    }
+                }
+            }
+        }
+    });
+    
+    // 8. Minerals Weekly Trend
+    const mineralsByDay = days.map(day => ({
+        fiber: data.weekly_plan[day].total_nutrition.fiber,
+        iron: data.weekly_plan[day].total_nutrition.iron,
+        calcium: data.weekly_plan[day].total_nutrition.calcium
+    }));
+    
+    if (mineralsTrendChart) mineralsTrendChart.destroy();
+    mineralsTrendChart = new Chart(document.getElementById('mineralsTrendChart'), {
+        type: 'line',
+        data: {
+            labels: days,
+            datasets: [
+                {
+                    label: 'Fiber (g)',
+                    data: mineralsByDay.map(d => d.fiber),
+                    borderColor: '#FF6B6B',
+                    tension: 0.4
+                },
+                {
+                    label: 'Iron (mg)',
+                    data: mineralsByDay.map(d => d.iron),
+                    borderColor: '#4ECDC4',
+                    tension: 0.4
+                },
+                {
+                    label: 'Calcium (mg)',
+                    data: mineralsByDay.map(d => d.calcium / 10), // Scale down for visualization
+                    borderColor: '#FFE66D',
+                    tension: 0.4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+}
+
+// Export functions
+function exportCSV() {
+    window.location.href = '/api/export-csv';
+}
+
+function exportPDF() {
+    window.location.href = '/api/export-pdf';
+}
+
+function exportJSON() {
+    window.location.href = '/api/export-json';
+}
+
+// Initialize
+$(document).ready(function() {
+    updateCount();
+    selectRecommended();
+});
+</script>
+{% endblock %}

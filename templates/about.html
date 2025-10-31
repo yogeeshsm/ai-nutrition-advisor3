@@ -1,0 +1,256 @@
+{% extends "base.html" %}
+
+{% block title %}About - AI Nutrition Advisor{% endblock %}
+
+{% block content %}
+<div class="text-center mb-5">
+    <h1 class="display-4 fw-bold" style="color: white;">
+        <i class="fas fa-info-circle"></i> About AI Nutrition Advisor
+    </h1>
+    <p class="lead" style="color: white; opacity: 0.9;">
+        Empowering Anganwadi workers with AI-powered meal planning
+    </p>
+</div>
+
+<!-- Project Overview -->
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="fas fa-book"></i> Project Overview
+    </div>
+    <div class="card-body">
+        <p class="lead">
+            The AI Nutrition Advisor is a comprehensive meal planning tool designed specifically for Anganwadi workers 
+            to generate balanced, nutritious weekly meal plans for children.
+        </p>
+        <p>
+            Using advanced AI optimization algorithms and ICMR nutritional guidelines, this tool helps create 
+            cost-effective meal plans that meet the nutritional requirements of children in different age groups.
+        </p>
+    </div>
+</div>
+
+<!-- Features -->
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="fas fa-star"></i> Key Features
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <h5><i class="fas fa-robot" style="color: var(--primary-color);"></i> AI-Powered Optimization</h5>
+                <p>Linear programming algorithm optimizes meal plans to maximize nutrition within budget constraints.</p>
+                
+                <h5><i class="fas fa-utensils" style="color: var(--primary-color);"></i> 31 Indian Ingredients</h5>
+                <p>Comprehensive database of locally available ingredients with accurate nutritional values.</p>
+                
+                <h5><i class="fas fa-chart-pie" style="color: var(--primary-color);"></i> Visual Analytics</h5>
+                <p>Interactive charts and graphs to understand nutritional composition and track effectiveness.</p>
+                
+                <h5><i class="fas fa-download" style="color: var(--primary-color);"></i> Multiple Export Formats</h5>
+                <p>Export meal plans as PDF, CSV, or JSON for easy sharing and record-keeping.</p>
+            </div>
+            <div class="col-md-6">
+                <h5><i class="fas fa-coins" style="color: var(--primary-color);"></i> Budget Management</h5>
+                <p>Set weekly budgets and get optimal meal plans that stay within financial constraints.</p>
+                
+                <h5><i class="fas fa-child" style="color: var(--primary-color);"></i> Age Group Specific</h5>
+                <p>Customized nutritional requirements based on ICMR guidelines for different age groups.</p>
+                
+                <h5><i class="fas fa-clipboard-check" style="color: var(--primary-color);"></i> Nutrition Scoring</h5>
+                <p>Every meal plan gets a comprehensive nutrition score to ensure quality standards.</p>
+                
+                <h5><i class="fas fa-mobile-alt" style="color: var(--primary-color);"></i> Responsive Design</h5>
+                <p>Works seamlessly on desktop, tablet, and mobile devices.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Technology Stack -->
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="fas fa-code"></i> Technology Stack
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4">
+                <h5>Backend</h5>
+                <ul class="list-unstyled">
+                    <li><i class="fab fa-python"></i> Python 3.13</li>
+                    <li><i class="fas fa-flask"></i> Flask 3.0</li>
+                    <li><i class="fas fa-database"></i> SQLite3</li>
+                    <li><i class="fas fa-brain"></i> PuLP (Linear Programming)</li>
+                </ul>
+            </div>
+            <div class="col-md-4">
+                <h5>Frontend</h5>
+                <ul class="list-unstyled">
+                    <li><i class="fab fa-bootstrap"></i> Bootstrap 5</li>
+                    <li><i class="fas fa-chart-area"></i> Chart.js</li>
+                    <li><i class="fab fa-js"></i> jQuery</li>
+                    <li><i class="fas fa-icons"></i> Font Awesome</li>
+                </ul>
+            </div>
+            <div class="col-md-4">
+                <h5>Data Processing</h5>
+                <ul class="list-unstyled">
+                    <li><i class="fas fa-table"></i> Pandas</li>
+                    <li><i class="fas fa-square-root-alt"></i> NumPy</li>
+                    <li><i class="fas fa-file-pdf"></i> FPDF</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- How It Works -->
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="fas fa-cogs"></i> How It Works
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3 text-center mb-3">
+                <div class="step-circle">1</div>
+                <h5>Select Ingredients</h5>
+                <p>Choose from 31 available ingredients across 5 categories</p>
+            </div>
+            <div class="col-md-3 text-center mb-3">
+                <div class="step-circle">2</div>
+                <h5>Set Parameters</h5>
+                <p>Enter budget, number of children, and age group</p>
+            </div>
+            <div class="col-md-3 text-center mb-3">
+                <div class="step-circle">3</div>
+                <h5>AI Optimization</h5>
+                <p>Algorithm creates optimal 7-day meal plan with 4 meals/day</p>
+            </div>
+            <div class="col-md-3 text-center mb-3">
+                <div class="step-circle">4</div>
+                <h5>Export & Use</h5>
+                <p>Download as PDF, CSV, or JSON and implement</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Nutritional Guidelines -->
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="fas fa-book-medical"></i> Nutritional Guidelines
+    </div>
+    <div class="card-body">
+        <p>All meal plans are optimized based on <strong>ICMR (Indian Council of Medical Research)</strong> guidelines:</p>
+        <div class="table-responsive">
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Age Group</th>
+                        <th>Calories</th>
+                        <th>Protein</th>
+                        <th>Carbs</th>
+                        <th>Fat</th>
+                        <th>Fiber</th>
+                        <th>Iron</th>
+                        <th>Calcium</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1-3 years</td>
+                        <td>1060 kcal</td>
+                        <td>16.7g</td>
+                        <td>130g</td>
+                        <td>27g</td>
+                        <td>19g</td>
+                        <td>9mg</td>
+                        <td>600mg</td>
+                    </tr>
+                    <tr>
+                        <td>4-6 years</td>
+                        <td>1350 kcal</td>
+                        <td>20.1g</td>
+                        <td>130g</td>
+                        <td>25g</td>
+                        <td>25g</td>
+                        <td>13mg</td>
+                        <td>600mg</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Contact & Support -->
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-envelope"></i> Support & Feedback
+    </div>
+    <div class="card-body text-center">
+        <p>For questions, issues, or suggestions, please reach out:</p>
+        <div class="d-flex justify-content-center gap-3 mt-3">
+            <a href="https://github.com" class="btn btn-outline-primary" target="_blank">
+                <i class="fab fa-github"></i> GitHub
+            </a>
+            <a href="mailto:support@example.com" class="btn btn-outline-primary">
+                <i class="fas fa-envelope"></i> Email Support
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+.step-circle {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: bold;
+    margin: 0 auto 15px;
+    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+}
+
+.card {
+    border: none;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    border-radius: 15px;
+    overflow: hidden;
+    animation: slideUp 0.5s ease-out;
+}
+
+.card-header {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    font-weight: 600;
+    padding: 1rem 1.5rem;
+    font-size: 1.1rem;
+}
+
+.table-bordered th {
+    background-color: var(--primary-color);
+    color: white;
+    font-weight: 600;
+}
+
+.gap-3 {
+    gap: 1rem;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+</style>
+{% endblock %}
