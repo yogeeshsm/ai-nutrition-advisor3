@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block title %}Health Information - AI Nutrition Advisor{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="display-4 mb-3">
+                <i class="fas fa-heartbeat text-danger"></i> Child Health Information
+            </h1>
+            <p class="lead">Common diseases, symptoms, prevention, and treatment guidelines for children</p>
+        </div>
+    </div>
+
+    <!-- Search and Filter -->
+    <div class="row mb-4">
+        <div class="col-md-6 mb-3">
+            <div class="input-group">
+                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                <input type="text" class="form-control" id="searchInput" placeholder="Search by disease name or symptoms...">
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <select class="form-select" id="categoryFilter">
+                <option value="">All Categories</option>
+                {% for category in categories %}
+                <option value="{{ category }}">{{ category }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2 mb-3">
+            <button class="btn btn-primary w-100" onclick="searchHealth()">
+                <i class="fas fa-filter"></i> Filter
+            </button>
+        </div>
+    </div>
+
+    <!-- Health Information Cards -->
+    <div class="row" id="healthCards">
+        {% for disease in health_data %}
+        <div class="col-md-6 col-lg-4 mb-4 health-card" data-category="{{ disease.category }}">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header {% if disease.severity == 'High' %}bg-danger text-white{% elif disease.severity == 'Medium' %}bg-warning text-dark{% else %}bg-success text-white{% endif %}">
+                    <h5 class="mb-0">
+                        <i class="fas fa-disease"></i> {{ disease.disease_name }}
+                    </h5>
+                    <small><i class="fas fa-tag"></i> {{ disease.category }} | Age: {{ disease.age_group }}</small>
+                </div>
+                <div class="card-body">
+                    <h6 class="text-primary"><i class="fas fa-thermometer"></i> Symptoms:</h6>
+                    <p class="small">{{ disease.symptoms }}</p>
+                    
+                    <h6 class="text-success"><i class="fas fa-shield-alt"></i> Prevention:</h6>
+                    <p class="small">{{ disease.prevention }}</p>
+                    
+                    <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#details{{ disease.id }}">
+                        <i class="fas fa-info-circle"></i> More Details
+                    </button>
+                    
+                    <div class="collapse mt-3" id="details{{ disease.id }}">
+                        <h6 class="text-info"><i class="fas fa-pills"></i> Treatment:</h6>
+                        <p class="small">{{ disease.treatment }}</p>
+                        
+                        <h6 class="text-warning"><i class="fas fa-exclamation-triangle"></i> Precautions:</h6>
+                        <p class="small">{{ disease.precautions }}</p>
+                    </div>
+                </div>
+                <div class="card-footer text-muted small">
+                    <i class="fas fa-exclamation-circle"></i> Severity: 
+                    <span class="badge {% if disease.severity == 'High' %}bg-danger{% elif disease.severity == 'Medium' %}bg-warning text-dark{% else %}bg-success{% endif %}">
+                        {{ disease.severity }}
+                    </span>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Emergency Numbers -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="alert alert-danger shadow">
+                <h4><i class="fas fa-ambulance"></i> Emergency Contacts</h4>
+                <div class="row">
+                    <div class="col-md-4">
+                        <h5>📞 Ambulance: 108</h5>
+                    </div>
+                    <div class="col-md-4">
+                        <h5>🏥 Emergency: 102</h5>
+                    </div>
+                    <div class="col-md-4">
+                        <h5>👶 Child Helpline: 1098</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function searchHealth() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const category = document.getElementById('categoryFilter').value;
+    const cards = document.querySelectorAll('.health-card');
+    
+    cards.forEach(card => {
+        const text = card.textContent.toLowerCase();
+        const cardCategory = card.getAttribute('data-category');
+        
+        const matchesSearch = !searchTerm || text.includes(searchTerm);
+        const matchesCategory = !category || cardCategory === category;
+        
+        if (matchesSearch && matchesCategory) {
+            card.style.display = 'block';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
+
+// Real-time search
+document.getElementById('searchInput').addEventListener('input', searchHealth);
+document.getElementById('categoryFilter').addEventListener('change', searchHealth);
+</script>
+
+<style>
+.health-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.health-card:hover {
+    transform: translateY(-5px);
+}
+
+.card-header {
+    font-weight: bold;
+}
+
+.collapse {
+    background-color: #f8f9fa;
+    padding: 10px;
+    border-radius: 5px;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,368 @@
+{% extends "base.html" %}
+
+{% block title %}Immunisation Reminder - AI Nutrition Advisor{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="display-4 mb-3">
+                <i class="fas fa-syringe text-primary"></i> Child Immunisation Tracker
+            </h1>
+            <p class="lead">Track vaccination schedules and send reminders to parents</p>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <button class="btn btn-success btn-lg w-100" data-bs-toggle="modal" data-bs-target="#addChildModal">
+                <i class="fas fa-plus-circle"></i> Add New Child
+            </button>
+        </div>
+        <div class="col-md-6">
+            <button class="btn btn-primary btn-lg w-100" data-bs-toggle="modal" data-bs-target="#addImmunisationModal">
+                <i class="fas fa-calendar-plus"></i> Schedule Immunisation
+            </button>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <ul class="nav nav-tabs mb-4" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="pending-tab" data-bs-toggle="tab" data-bs-target="#pending" type="button">
+                <i class="fas fa-clock"></i> Pending Vaccinations ({{ pending|length }})
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="children-tab" data-bs-toggle="tab" data-bs-target="#children-list" type="button">
+                <i class="fas fa-child"></i> All Children ({{ children|length }})
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="schedule-tab" data-bs-toggle="tab" data-bs-target="#schedule" type="button">
+                <i class="fas fa-calendar-alt"></i> Immunisation Schedule
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content">
+        <!-- Pending Vaccinations -->
+        <div class="tab-pane fade show active" id="pending" role="tabpanel">
+            <div class="row">
+                {% if pending|length > 0 %}
+                    {% for imm in pending %}
+                    <div class="col-md-6 col-lg-4 mb-3">
+                        <div class="card shadow-sm border-warning">
+                            <div class="card-header bg-warning text-dark">
+                                <h6 class="mb-0"><i class="fas fa-user"></i> {{ imm.name }}</h6>
+                            </div>
+                            <div class="card-body">
+                                <p class="mb-2"><strong>Vaccine:</strong> {{ imm.vaccine_name }}</p>
+                                <p class="mb-2"><strong>Due Date:</strong> <span class="text-danger">{{ imm.due_date }}</span></p>
+                                <p class="mb-2"><strong>Parent:</strong> {{ imm.parent_name }}</p>
+                                <p class="mb-2"><strong>Phone:</strong> {{ imm.phone_number }}</p>
+                                <p class="mb-2"><strong>Village:</strong> {{ imm.village }}</p>
+                                {% if imm.notes %}
+                                <p class="mb-2 small"><strong>Notes:</strong> {{ imm.notes }}</p>
+                                {% endif %}
+                                <div class="btn-group w-100 mt-2">
+                                    <button class="btn btn-sm btn-success" onclick="markDone({{ imm.id }})">
+                                        <i class="fas fa-check"></i> Mark Done
+                                    </button>
+                                    <button class="btn btn-sm btn-info" onclick="sendReminder('{{ imm.phone_number }}', '{{ imm.name }}', '{{ imm.vaccine_name }}')">
+                                        <i class="fas fa-bell"></i> Send Reminder
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="col-12">
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle"></i> No pending vaccinations! All children are up to date.
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- All Children -->
+        <div class="tab-pane fade" id="children-list" role="tabpanel">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead class="table-primary">
+                        <tr>
+                            <th>Name</th>
+                            <th>Date of Birth</th>
+                            <th>Gender</th>
+                            <th>Parent</th>
+                            <th>Phone</th>
+                            <th>Village</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for child in children %}
+                        <tr>
+                            <td><i class="fas fa-child"></i> {{ child.name }}</td>
+                            <td>{{ child.date_of_birth }}</td>
+                            <td>{{ child.gender }}</td>
+                            <td>{{ child.parent_name }}</td>
+                            <td>{{ child.phone_number }}</td>
+                            <td>{{ child.village }}</td>
+                            <td>
+                                <button class="btn btn-sm btn-primary" onclick="scheduleForChild({{ child.id }}, '{{ child.name }}')">
+                                    <i class="fas fa-calendar-plus"></i> Schedule
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Immunisation Schedule Guide -->
+        <div class="tab-pane fade" id="schedule" role="tabpanel">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5><i class="fas fa-calendar-check"></i> Standard Immunisation Schedule (India)</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Age</th>
+                                <th>Vaccine</th>
+                                <th>Disease Protection</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>At Birth</td><td>BCG, OPV-0, Hepatitis B-1</td><td>Tuberculosis, Polio, Hepatitis B</td></tr>
+                            <tr><td>6 Weeks</td><td>DPT-1, OPV-1, Hepatitis B-2, Hib-1, Rotavirus-1, PCV-1</td><td>Diphtheria, Pertussis, Tetanus, Polio, Hepatitis B, Haemophilus influenzae, Rotavirus, Pneumococcal</td></tr>
+                            <tr><td>10 Weeks</td><td>DPT-2, OPV-2, Hib-2, Rotavirus-2, PCV-2</td><td>As above</td></tr>
+                            <tr><td>14 Weeks</td><td>DPT-3, OPV-3, Hepatitis B-3, Hib-3, Rotavirus-3, PCV-3</td><td>As above</td></tr>
+                            <tr><td>9 Months</td><td>Measles-1, Vitamin A (1st dose)</td><td>Measles, Vitamin A deficiency</td></tr>
+                            <tr><td>12 Months</td><td>Hepatitis A-1</td><td>Hepatitis A</td></tr>
+                            <tr><td>15 Months</td><td>MMR-1, Varicella-1, PCV Booster</td><td>Measles, Mumps, Rubella, Chickenpox, Pneumococcal</td></tr>
+                            <tr><td>16-18 Months</td><td>DPT Booster-1, OPV Booster, Hib Booster, Hepatitis A-2</td><td>As above</td></tr>
+                            <tr><td>2 Years</td><td>Typhoid</td><td>Typhoid</td></tr>
+                            <tr><td>4-6 Years</td><td>DPT Booster-2, OPV Booster-2, MMR-2, Varicella-2</td><td>As above</td></tr>
+                            <tr><td>10 Years</td><td>Tdap/Td</td><td>Tetanus, Diphtheria, Pertussis</td></tr>
+                        </tbody>
+                    </table>
+                    <div class="alert alert-info mt-3">
+                        <i class="fas fa-info-circle"></i> <strong>Note:</strong> Always consult with a healthcare professional for personalized immunization schedules.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Child Modal -->
+<div class="modal fade" id="addChildModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="fas fa-plus-circle"></i> Add New Child</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addChildForm">
+                    <div class="mb-3">
+                        <label class="form-label">Child's Name *</label>
+                        <input type="text" class="form-control" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Date of Birth *</label>
+                        <input type="date" class="form-control" name="dob" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Gender</label>
+                        <select class="form-select" name="gender">
+                            <option value="">Select</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Parent's Name</label>
+                        <input type="text" class="form-control" name="parent_name">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Phone Number</label>
+                        <input type="tel" class="form-control" name="phone">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Address</label>
+                        <input type="text" class="form-control" name="address">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Village/Area</label>
+                        <input type="text" class="form-control" name="village">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Health Notes</label>
+                        <textarea class="form-control" name="health_notes" rows="2"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" onclick="saveChild()">Save Child</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Immunisation Modal -->
+<div class="modal fade" id="addImmunisationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fas fa-calendar-plus"></i> Schedule Immunisation</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addImmunisationForm">
+                    <div class="mb-3">
+                        <label class="form-label">Select Child *</label>
+                        <select class="form-select" name="child_id" required id="childSelect">
+                            <option value="">Choose a child</option>
+                            {% for child in children %}
+                            <option value="{{ child.id }}">{{ child.name }} (DOB: {{ child.date_of_birth }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Vaccine Name *</label>
+                        <input type="text" class="form-control" name="vaccine_name" list="vaccines" required>
+                        <datalist id="vaccines">
+                            <option value="BCG">
+                            <option value="OPV (Polio)">
+                            <option value="Hepatitis B">
+                            <option value="DPT">
+                            <option value="Hib">
+                            <option value="Rotavirus">
+                            <option value="PCV">
+                            <option value="Measles">
+                            <option value="MMR">
+                            <option value="Varicella">
+                            <option value="Hepatitis A">
+                            <option value="Typhoid">
+                        </datalist>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Due Date *</label>
+                        <input type="date" class="form-control" name="due_date" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea class="form-control" name="notes" rows="2"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveImmunisation()">Schedule</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function saveChild() {
+    const form = document.getElementById('addChildForm');
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData.entries());
+    
+    fetch('/api/add-child', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            alert('Child added successfully!');
+            location.reload();
+        } else {
+            alert('Error: ' + result.error);
+        }
+    });
+}
+
+function saveImmunisation() {
+    const form = document.getElementById('addImmunisationForm');
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData.entries());
+    
+    fetch('/api/add-immunisation', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            alert('Immunisation scheduled successfully!');
+            location.reload();
+        } else {
+            alert('Error: ' + result.error);
+        }
+    });
+}
+
+function markDone(id) {
+    const date = prompt('Enter administered date (YYYY-MM-DD):', new Date().toISOString().split('T')[0]);
+    if (!date) return;
+    
+    const notes = prompt('Any notes?', '');
+    
+    fetch('/api/mark-immunisation-done', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({id, date, notes})
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            alert('Marked as completed!');
+            location.reload();
+        } else {
+            alert('Error: ' + result.error);
+        }
+    });
+}
+
+function sendReminder(phone, name, vaccine) {
+    alert(`Reminder would be sent to ${phone}:\n\n"Dear Parent, this is a reminder that ${name} is due for ${vaccine} vaccination. Please visit the nearest health center."`);
+    // In production, integrate with SMS API (Twilio, MSG91, etc.)
+}
+
+function scheduleForChild(childId, childName) {
+    document.getElementById('childSelect').value = childId;
+    const modal = new bootstrap.Modal(document.getElementById('addImmunisationModal'));
+    modal.show();
+}
+</script>
+
+<style>
+.card {
+    transition: transform 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+.table-hover tbody tr:hover {
+    background-color: #f8f9fa;
+    cursor: pointer;
+}
+</style>
+{% endblock %}

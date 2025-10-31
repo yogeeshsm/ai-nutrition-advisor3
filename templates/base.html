@@ -869,6 +869,16 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/health-info' %}active{% endif %}" href="/health-info">
+                            <i class="fas fa-heartbeat"></i> Health Info
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/immunisation' %}active{% endif %}" href="/immunisation">
+                            <i class="fas fa-syringe"></i> Immunisation
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link {% if request.path == '/analytics' %}active{% endif %}" href="/analytics">
                             <i class="fas fa-chart-line"></i> Analytics
                         </a>

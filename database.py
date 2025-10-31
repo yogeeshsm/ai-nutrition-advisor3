@@ -65,12 +65,65 @@ def initialize_database():
         )
     """)
     
+    # Create children table for immunisation tracking
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS children (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            date_of_birth DATE NOT NULL,
+            gender TEXT,
+            parent_name TEXT,
+            phone_number TEXT,
+            address TEXT,
+            village TEXT,
+            health_notes TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    
+    # Create immunisation schedule table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS immunisation_schedule (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            child_id INTEGER,
+            vaccine_name TEXT NOT NULL,
+            due_date DATE NOT NULL,
+            administered_date DATE,
+            status TEXT DEFAULT 'Pending',
+            notes TEXT,
+            reminder_sent INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (child_id) REFERENCES children(id)
+        )
+    """)
+    
+    # Create health information table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS health_information (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            disease_name TEXT NOT NULL,
+            category TEXT,
+            symptoms TEXT,
+            prevention TEXT,
+            treatment TEXT,
+            precautions TEXT,
+            age_group TEXT,
+            severity TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    
     conn.commit()
     
     # Check if ingredients table is empty
     cursor.execute("SELECT COUNT(*) FROM ingredients")
     if cursor.fetchone()[0] == 0:
         insert_sample_ingredients(conn)
+    
+    # Check if health_information table is empty
+    cursor.execute("SELECT COUNT(*) FROM health_information")
+    if cursor.fetchone()[0] == 0:
+        insert_health_information(conn)
     
     conn.close()
     print("✅ Database initialized successfully!")
@@ -254,6 +307,208 @@ def get_analytics_data():
     
     conn.close()
     return plans_df, effectiveness_df
+
+def insert_health_information(conn):
+    """Insert common child health information"""
+    cursor = conn.cursor()
+    
+    health_data = [
+        # Disease name, category, symptoms, prevention, treatment, precautions, age_group, severity
+        (
+            "Malnutrition", "Nutrition", 
+            "Weight loss, fatigue, weakness, slow growth, weak immunity, dry skin",
+            "Balanced diet with proteins, vitamins, minerals; Regular health checkups; Breastfeeding for infants",
+            "Nutritious diet plan, protein supplements, vitamin supplements, regular monitoring",
+            "Ensure 5 meals per day; Include eggs, milk, pulses; Monitor weight monthly; Consult nutritionist",
+            "0-10 years", "High"
+        ),
+        (
+            "Diarrhea", "Digestive",
+            "Loose watery stools, stomach cramps, fever, dehydration, loss of appetite",
+            "Clean drinking water, proper handwashing, food hygiene, avoid contaminated food",
+            "ORS (Oral Rehydration Solution), zinc supplements, continue feeding, seek medical help if severe",
+            "Give ORS frequently; Continue breastfeeding; Avoid junk food; Maintain hygiene; Watch for dehydration signs",
+            "0-10 years", "Medium"
+        ),
+        (
+            "Anemia", "Blood Disorder",
+            "Pale skin, fatigue, weakness, dizziness, rapid heartbeat, shortness of breath",
+            "Iron-rich diet (leafy vegetables, eggs, meat); Vitamin C foods; Iron supplements",
+            "Iron and folic acid supplements, vitamin B12, nutritious diet, regular blood tests",
+            "Include spinach, dates, ragi in diet; Take iron tablets with vitamin C; Avoid tea/coffee with meals",
+            "1-10 years", "High"
+        ),
+        (
+            "Common Cold", "Respiratory",
+            "Runny nose, sneezing, cough, mild fever, sore throat, body ache",
+            "Avoid contact with sick people; Hand hygiene; Warm clothing; Boost immunity with nutritious food",
+            "Rest, warm liquids, steam inhalation, paracetamol for fever, avoid antibiotics unless prescribed",
+            "Keep child warm; Give warm water; Ensure rest; Avoid cold foods; Monitor temperature",
+            "0-10 years", "Low"
+        ),
+        (
+            "Measles", "Viral Infection",
+            "High fever, red rash, cough, runny nose, red watery eyes, white spots in mouth",
+            "Measles vaccination (MMR vaccine); Avoid contact with infected children",
+            "Vitamin A supplements, fever management, rest, isolation, medical consultation",
+            "Isolate from other children; Give vitamin A; Manage fever; Ensure hydration; Immediate doctor visit",
+            "0-6 years", "High"
+        ),
+        (
+            "Chicken Pox", "Viral Infection",
+            "Itchy red rashes with blisters, fever, tiredness, loss of appetite, headache",
+            "Varicella vaccine; Avoid contact with infected persons",
+            "Calamine lotion for itching, paracetamol for fever, antiviral medicines if severe, rest",
+            "Keep nails trimmed; Apply calamine; Prevent scratching; Isolate child; Light cotton clothes",
+            "1-10 years", "Medium"
+        ),
+        (
+            "Pneumonia", "Respiratory",
+            "High fever, cough with phlegm, rapid breathing, chest pain, difficulty breathing",
+            "Complete vaccination; Good nutrition; Avoid smoke exposure; Handwashing",
+            "Antibiotics, oxygen therapy if needed, hospitalization for severe cases, chest physiotherapy",
+            "Immediate medical attention; Keep child warm; Give prescribed medicines; Monitor breathing; Ensure rest",
+            "0-5 years", "High"
+        ),
+        (
+            "Tuberculosis (TB)", "Bacterial Infection",
+            "Persistent cough, fever, night sweats, weight loss, loss of appetite, fatigue",
+            "BCG vaccination at birth; Avoid contact with TB patients; Good ventilation; Nutritious diet",
+            "6-9 months anti-TB medicines, directly observed therapy, nutritious diet, regular follow-up",
+            "Complete full medicine course; Never skip doses; Ensure good nutrition; Isolate initially; Regular checkups",
+            "0-10 years", "High"
+        ),
+        (
+            "Worm Infestation", "Parasitic",
+            "Stomach pain, diarrhea, nausea, weight loss, visible worms in stool, itching around anus",
+            "Clean drinking water; Handwashing before meals; Wear footwear; Cook food properly; Regular deworming",
+            "Deworming tablets (Albendazole/Mebendazole), repeat after 2 weeks, improve hygiene",
+            "Deworming every 6 months; Wash hands frequently; Cut nails short; Wear slippers; Boil drinking water",
+            "1-10 years", "Medium"
+        ),
+        (
+            "Vitamin A Deficiency", "Nutrition",
+            "Night blindness, dry eyes, frequent infections, poor growth, dry skin",
+            "Vitamin A rich foods (carrots, papaya, mango, leafy vegetables, eggs, milk)",
+            "Vitamin A supplements, nutritious diet, regular eye checkups",
+            "Include orange/yellow fruits; Give green leafy vegetables; Vitamin A dose every 6 months; Eye checkups",
+            "6 months-5 years", "Medium"
+        ),
+        (
+            "Scabies", "Skin Infection",
+            "Intense itching (worse at night), rash, small blisters, burrow tracks on skin",
+            "Personal hygiene; Don't share clothes/bedding; Regular bathing; Clean environment",
+            "Permethrin cream, oral antihistamines for itching, wash all clothes and bedding in hot water",
+            "Apply prescribed cream; Wash all clothes; Bathe daily; Treat all family members; Avoid scratching",
+            "0-10 years", "Low"
+        ),
+        (
+            "Dental Cavities", "Dental",
+            "Tooth pain, sensitivity to hot/cold, visible holes in teeth, bad breath, discoloration",
+            "Brush twice daily; Avoid sugary foods; Regular dental checkups; Fluoride toothpaste",
+            "Dental fillings, fluoride treatment, extraction if needed, pain management",
+            "Brush morning and night; Limit sweets; Rinse after meals; Visit dentist every 6 months; Use fluoride toothpaste",
+            "2-10 years", "Low"
+        )
+    ]
+    
+    cursor.executemany("""
+        INSERT INTO health_information 
+        (disease_name, category, symptoms, prevention, treatment, precautions, age_group, severity)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    """, health_data)
+    
+    conn.commit()
+    print("✅ Health information added successfully!")
+
+# Child and Immunisation Management Functions
+
+def add_child(name, dob, gender, parent_name, phone, address, village, health_notes=""):
+    """Add a new child to the system"""
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        INSERT INTO children (name, date_of_birth, gender, parent_name, phone_number, address, village, health_notes)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    """, (name, dob, gender, parent_name, phone, address, village, health_notes))
+    
+    child_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    return child_id
+
+def get_all_children():
+    """Get all children records"""
+    conn = get_connection()
+    df = pd.read_sql_query("SELECT * FROM children ORDER BY name", conn)
+    conn.close()
+    return df
+
+def add_immunisation(child_id, vaccine_name, due_date, notes=""):
+    """Add immunisation schedule for a child"""
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        INSERT INTO immunisation_schedule (child_id, vaccine_name, due_date, notes)
+        VALUES (?, ?, ?, ?)
+    """, (child_id, vaccine_name, due_date, notes))
+    
+    conn.commit()
+    conn.close()
+
+def get_pending_immunisations():
+    """Get all pending immunisations"""
+    conn = get_connection()
+    df = pd.read_sql_query("""
+        SELECT i.id, c.name, c.parent_name, c.phone_number, c.village,
+               i.vaccine_name, i.due_date, i.notes, i.reminder_sent
+        FROM immunisation_schedule i
+        JOIN children c ON i.child_id = c.id
+        WHERE i.status = 'Pending'
+        ORDER BY i.due_date
+    """, conn)
+    conn.close()
+    return df
+
+def mark_immunisation_done(immunisation_id, administered_date, notes=""):
+    """Mark an immunisation as completed"""
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        UPDATE immunisation_schedule 
+        SET status = 'Completed', administered_date = ?, notes = ?
+        WHERE id = ?
+    """, (administered_date, notes, immunisation_id))
+    
+    conn.commit()
+    conn.close()
+
+def get_health_info_by_category(category=None):
+    """Get health information, optionally filtered by category"""
+    conn = get_connection()
+    if category:
+        df = pd.read_sql_query(
+            "SELECT * FROM health_information WHERE category = ? ORDER BY disease_name", 
+            conn, params=(category,)
+        )
+    else:
+        df = pd.read_sql_query("SELECT * FROM health_information ORDER BY disease_name", conn)
+    conn.close()
+    return df
+
+def search_health_info(search_term):
+    """Search health information by disease name or symptoms"""
+    conn = get_connection()
+    df = pd.read_sql_query("""
+        SELECT * FROM health_information 
+        WHERE disease_name LIKE ? OR symptoms LIKE ? OR category LIKE ?
+        ORDER BY disease_name
+    """, conn, params=(f'%{search_term}%', f'%{search_term}%', f'%{search_term}%'))
+    conn.close()
+    return df
 
 if __name__ == "__main__":
     # Initialize database when run directly

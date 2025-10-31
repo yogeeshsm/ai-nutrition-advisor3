@@ -268,6 +268,92 @@ def get_plan_summary(meal_plan, num_children, budget):
         'daily_protein': round(meal_plan['weekly_nutrition']['protein'] / 7, 1)
     }
 
+@app.route('/health-info')
+def health_info():
+    """Health Information Page"""
+    # Get all health information
+    health_data = db.get_health_info_by_category()
+    
+    # Get unique categories
+    categories = health_data['category'].unique().tolist() if not health_data.empty else []
+    
+    return render_template('health_info.html', 
+                         health_data=health_data.to_dict('records'),
+                         categories=categories)
+
+@app.route('/api/search-health')
+def search_health():
+    """API endpoint to search health information"""
+    search_term = request.args.get('q', '')
+    category = request.args.get('category', '')
+    
+    if search_term:
+        results = db.search_health_info(search_term)
+    elif category:
+        results = db.get_health_info_by_category(category)
+    else:
+        results = db.get_health_info_by_category()
+    
+    return jsonify(results.to_dict('records'))
+
+@app.route('/immunisation')
+def immunisation():
+    """Immunisation Reminder Page"""
+    children = db.get_all_children()
+    pending_immunisations = db.get_pending_immunisations()
+    
+    return render_template('immunisation.html',
+                         children=children.to_dict('records'),
+                         pending=pending_immunisations.to_dict('records'))
+
+@app.route('/api/add-child', methods=['POST'])
+def api_add_child():
+    """API endpoint to add a new child"""
+    try:
+        data = request.json
+        child_id = db.add_child(
+            name=data['name'],
+            dob=data['dob'],
+            gender=data.get('gender', ''),
+            parent_name=data.get('parent_name', ''),
+            phone=data.get('phone', ''),
+            address=data.get('address', ''),
+            village=data.get('village', ''),
+            health_notes=data.get('health_notes', '')
+        )
+        return jsonify({'success': True, 'child_id': child_id})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/add-immunisation', methods=['POST'])
+def api_add_immunisation():
+    """API endpoint to add immunisation schedule"""
+    try:
+        data = request.json
+        db.add_immunisation(
+            child_id=data['child_id'],
+            vaccine_name=data['vaccine_name'],
+            due_date=data['due_date'],
+            notes=data.get('notes', '')
+        )
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/mark-immunisation-done', methods=['POST'])
+def api_mark_done():
+    """API endpoint to mark immunisation as completed"""
+    try:
+        data = request.json
+        db.mark_immunisation_done(
+            immunisation_id=data['id'],
+            administered_date=data['date'],
+            notes=data.get('notes', '')
+        )
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
 if __name__ == '__main__':
     import os
     port = int(os.environ.get('PORT', 5000))
