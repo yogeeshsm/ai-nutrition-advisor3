@@ -19,6 +19,7 @@ import database as db
 import meal_optimizer as mo
 from utils import export_to_pdf, get_food_emoji, format_currency
 from usda_api import get_usda_api
+from who_immunization import who_api
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'nutrition-advisor-secret-key-2025')
@@ -408,6 +409,48 @@ def api_usda_compare():
     
     comparison = api.compare_foods(food_names)
     return jsonify(comparison)
+
+@app.route('/who-vaccines')
+def who_vaccines():
+    """WHO Vaccination Information Page"""
+    schedule = who_api.get_vaccination_schedule()
+    coverage = who_api.get_immunization_coverage('India')
+    missed_reasons = who_api.get_missed_opportunities()
+    
+    return render_template('who_vaccines.html',
+                         schedule=schedule,
+                         coverage=coverage,
+                         missed_reasons=missed_reasons)
+
+@app.route('/api/who-vaccine-info')
+def api_who_vaccine_info():
+    """API endpoint to get vaccine information"""
+    vaccine_name = request.args.get('vaccine', '')
+    
+    if not vaccine_name:
+        return jsonify({'error': 'Vaccine name required'}), 400
+    
+    info = who_api.get_vaccine_info(vaccine_name)
+    
+    if info:
+        return jsonify(info)
+    else:
+        return jsonify({'error': 'Vaccine not found'}), 404
+
+@app.route('/api/who-disease-info')
+def api_who_disease_info():
+    """API endpoint to get disease information"""
+    disease_name = request.args.get('disease', '')
+    
+    if not disease_name:
+        return jsonify({'error': 'Disease name required'}), 400
+    
+    info = who_api.get_disease_info(disease_name)
+    
+    if info:
+        return jsonify(info)
+    else:
+        return jsonify({'error': 'Disease not found'}), 404
 
 if __name__ == '__main__':
     import os

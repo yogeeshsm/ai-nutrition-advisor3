@@ -1,0 +1,338 @@
+{% extends "base.html" %}
+
+{% block title %}WHO Vaccination Schedule - AI Nutrition Advisor{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="display-4 mb-3">
+                <i class="fas fa-globe text-primary"></i> WHO Vaccination Schedule
+            </h1>
+            <p class="lead">Official immunization recommendations from World Health Organization</p>
+        </div>
+    </div>
+
+    <!-- Coverage Statistics -->
+    {% if coverage %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-lg border-0" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <div class="card-body text-white">
+                    <h4><i class="fas fa-chart-line"></i> India Immunization Coverage ({{ coverage.year }})</h4>
+                    <div class="row mt-3">
+                        <div class="col-md-3 col-sm-6 mb-3">
+                            <div class="text-center">
+                                <h2>{{ coverage.overall_coverage }}%</h2>
+                                <small>Overall Coverage</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-sm-6 mb-3">
+                            <div class="text-center">
+                                <h2>{{ coverage.bcg }}%</h2>
+                                <small>BCG</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-sm-6 mb-3">
+                            <div class="text-center">
+                                <h2>{{ coverage.dpt3 }}%</h2>
+                                <small>DPT (3 doses)</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-sm-6 mb-3">
+                            <div class="text-center">
+                                <h2>{{ coverage.measles }}%</h2>
+                                <small>Measles</small>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="mb-0"><small><i class="fas fa-info-circle"></i> {{ coverage.notes }}</small></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Vaccination Schedule -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h3 class="mb-3"><i class="fas fa-calendar-alt"></i> Complete Vaccination Schedule</h3>
+        </div>
+    </div>
+
+    <div class="row">
+        {% for item in schedule %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100 shadow-sm hover-card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-clock"></i> {{ item.age }}</h5>
+                </div>
+                <div class="card-body">
+                    <h6 class="text-success"><i class="fas fa-syringe"></i> Vaccines:</h6>
+                    <ul class="list-unstyled">
+                        {% for vaccine in item.vaccines %}
+                        <li class="mb-1">
+                            <span class="badge bg-info" style="cursor: pointer;" onclick="showVaccineInfo('{{ vaccine }}')">
+                                {{ vaccine }}
+                            </span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    
+                    <h6 class="text-danger mt-3"><i class="fas fa-shield-virus"></i> Protects Against:</h6>
+                    <p class="small text-muted">{{ item.diseases | join(', ') }}</p>
+                    
+                    <div class="alert alert-info small mb-0">
+                        <strong>Description:</strong> {{ item.description }}
+                    </div>
+                </div>
+                <div class="card-footer bg-light">
+                    <small class="text-muted">
+                        <i class="fas fa-star text-warning"></i> <strong>{{ item.importance }}</strong>
+                    </small>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Missed Opportunities -->
+    {% if missed_reasons %}
+    <div class="row mt-5 mb-4">
+        <div class="col-12">
+            <h3 class="mb-3"><i class="fas fa-exclamation-triangle text-warning"></i> Common Reasons for Missed Vaccinations</h3>
+            <div class="card shadow">
+                <div class="card-body">
+                    <div class="row">
+                        {% for reason in missed_reasons %}
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex align-items-start">
+                                <div class="flex-shrink-0">
+                                    <div class="bg-warning text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                                        <strong>{{ reason.percentage }}%</strong>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h6 class="mb-1">{{ reason.reason }}</h6>
+                                    <p class="small text-muted mb-0">
+                                        <i class="fas fa-lightbulb text-success"></i> <strong>Solution:</strong> {{ reason.solution }}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Quick Vaccine Lookup -->
+    <div class="row mt-5 mb-4">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-search"></i> Vaccine Information Lookup</h5>
+                </div>
+                <div class="card-body">
+                    <div class="input-group mb-3">
+                        <input type="text" class="form-control" id="vaccineSearch" placeholder="Enter vaccine name (e.g., BCG, DPT, MMR)">
+                        <button class="btn btn-info" onclick="searchVaccine()">
+                            <i class="fas fa-search"></i> Search
+                        </button>
+                    </div>
+                    <div id="vaccineResult"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="fas fa-disease"></i> Disease Information Lookup</h5>
+                </div>
+                <div class="card-body">
+                    <div class="input-group mb-3">
+                        <input type="text" class="form-control" id="diseaseSearch" placeholder="Enter disease name (e.g., Measles, Polio)">
+                        <button class="btn btn-danger" onclick="searchDisease()">
+                            <i class="fas fa-search"></i> Search
+                        </button>
+                    </div>
+                    <div id="diseaseResult"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Important Notice -->
+    <div class="row mt-4 mb-5">
+        <div class="col-12">
+            <div class="alert alert-warning shadow">
+                <h5><i class="fas fa-info-circle"></i> Important Information</h5>
+                <ul class="mb-0">
+                    <li>This schedule is based on WHO recommendations and India's Universal Immunization Programme (UIP)</li>
+                    <li>Always consult with a healthcare professional for personalized vaccination schedules</li>
+                    <li>Keep vaccination records updated and carry them during health checkups</li>
+                    <li>If a dose is missed, catch-up vaccination is possible - consult your healthcare provider</li>
+                    <li>Report any severe reactions to vaccines immediately to healthcare authorities</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Vaccine Info Modal -->
+<div class="modal fade" id="vaccineModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title"><i class="fas fa-syringe"></i> Vaccine Information</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="vaccineModalBody">
+                <!-- Content loaded via JavaScript -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showVaccineInfo(vaccineName) {
+    fetch(`/api/who-vaccine-info?vaccine=${encodeURIComponent(vaccineName)}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert('Vaccine information not found');
+                return;
+            }
+            
+            const html = `
+                <h4>${data.name} - ${data.full_name}</h4>
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong><i class="fas fa-shield-alt text-success"></i> Prevents:</strong> ${data.prevents}</p>
+                        <p><strong><i class="fas fa-flask text-primary"></i> Type:</strong> ${data.type}</p>
+                        <p><strong><i class="fas fa-pills text-info"></i> Doses:</strong> ${data.doses}</p>
+                        <p><strong><i class="fas fa-thermometer-half text-danger"></i> Storage:</strong> ${data.storage}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong><i class="fas fa-exclamation-circle text-warning"></i> Side Effects:</strong> ${data.side_effects}</p>
+                        <p><strong><i class="fas fa-ban text-danger"></i> Contraindications:</strong> ${data.contraindications}</p>
+                    </div>
+                </div>
+                <div class="alert alert-info mt-3">
+                    <strong><i class="fas fa-globe"></i> WHO Recommendation:</strong> ${data.who_recommendation}
+                </div>
+            `;
+            
+            document.getElementById('vaccineModalBody').innerHTML = html;
+            new bootstrap.Modal(document.getElementById('vaccineModal')).show();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to fetch vaccine information');
+        });
+}
+
+function searchVaccine() {
+    const vaccineName = document.getElementById('vaccineSearch').value;
+    if (!vaccineName) {
+        alert('Please enter a vaccine name');
+        return;
+    }
+    
+    fetch(`/api/who-vaccine-info?vaccine=${encodeURIComponent(vaccineName)}`)
+        .then(response => response.json())
+        .then(data => {
+            const resultDiv = document.getElementById('vaccineResult');
+            
+            if (data.error) {
+                resultDiv.innerHTML = '<div class="alert alert-danger">Vaccine not found. Try: BCG, DPT, OPV, MMR, Measles, PCV, Rotavirus, HPV</div>';
+                return;
+            }
+            
+            resultDiv.innerHTML = `
+                <div class="card border-info">
+                    <div class="card-body">
+                        <h6 class="text-info">${data.name} - ${data.full_name}</h6>
+                        <p class="small mb-1"><strong>Prevents:</strong> ${data.prevents}</p>
+                        <p class="small mb-1"><strong>Type:</strong> ${data.type}</p>
+                        <p class="small mb-1"><strong>Doses:</strong> ${data.doses}</p>
+                        <button class="btn btn-sm btn-info mt-2" onclick="showVaccineInfo('${data.name}')">View Full Details</button>
+                    </div>
+                </div>
+            `;
+        })
+        .catch(error => {
+            document.getElementById('vaccineResult').innerHTML = '<div class="alert alert-danger">Error fetching data</div>';
+        });
+}
+
+function searchDisease() {
+    const diseaseName = document.getElementById('diseaseSearch').value;
+    if (!diseaseName) {
+        alert('Please enter a disease name');
+        return;
+    }
+    
+    fetch(`/api/who-disease-info?disease=${encodeURIComponent(diseaseName)}`)
+        .then(response => response.json())
+        .then(data => {
+            const resultDiv = document.getElementById('diseaseResult');
+            
+            if (data.error) {
+                resultDiv.innerHTML = '<div class="alert alert-danger">Disease not found. Try: Measles, Polio, Tuberculosis, Diphtheria, Tetanus</div>';
+                return;
+            }
+            
+            resultDiv.innerHTML = `
+                <div class="card border-danger">
+                    <div class="card-body">
+                        <h6 class="text-danger">${data.name}</h6>
+                        <p class="small mb-1"><strong>Vaccine:</strong> ${data.vaccine}</p>
+                        <p class="small mb-1"><strong>Symptoms:</strong> ${data.symptoms}</p>
+                        <p class="small mb-1"><strong>Transmission:</strong> ${data.transmission}</p>
+                        <p class="small mb-1"><strong>Severity:</strong> ${data.severity}</p>
+                        <div class="alert alert-warning small mt-2 mb-0">
+                            <strong>Prevention:</strong> ${data.prevention}
+                        </div>
+                    </div>
+                </div>
+            `;
+        })
+        .catch(error => {
+            document.getElementById('diseaseResult').innerHTML = '<div class="alert alert-danger">Error fetching data</div>';
+        });
+}
+
+// Enter key support
+document.getElementById('vaccineSearch').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') searchVaccine();
+});
+
+document.getElementById('diseaseSearch').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') searchDisease();
+});
+</script>
+
+<style>
+.hover-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hover-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+}
+
+.badge {
+    transition: all 0.3s ease;
+}
+
+.badge:hover {
+    transform: scale(1.1);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+</style>
+{% endblock %}
