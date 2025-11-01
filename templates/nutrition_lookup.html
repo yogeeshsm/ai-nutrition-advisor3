@@ -1,0 +1,329 @@
+{% extends "base.html" %}
+
+{% block title %}Nutrition Lookup - USDA Database{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="display-4 mb-3">
+                <i class="fas fa-search text-success"></i> USDA Nutrition Database
+            </h1>
+            <p class="lead">Search 300,000+ foods for accurate nutrition information</p>
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> Powered by USDA FoodData Central - The most comprehensive nutrition database
+            </div>
+        </div>
+    </div>
+
+    <!-- Search Section -->
+    <div class="row mb-4">
+        <div class="col-md-8 mx-auto">
+            <div class="card shadow-lg">
+                <div class="card-body p-4">
+                    <div class="input-group input-group-lg">
+                        <span class="input-group-text bg-white border-end-0">
+                            <i class="fas fa-search text-primary"></i>
+                        </span>
+                        <input type="text" 
+                               class="form-control border-start-0" 
+                               id="searchInput" 
+                               placeholder="Search for any food (e.g., apple, rice, chicken)..."
+                               autocomplete="off">
+                        <button class="btn btn-primary" type="button" onclick="searchFood()">
+                            <i class="fas fa-search"></i> Search
+                        </button>
+                    </div>
+                    <div class="mt-3">
+                        <small class="text-muted">
+                            <i class="fas fa-lightbulb"></i> Try: banana, rice, chicken breast, spinach, milk
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div id="loadingSpinner" class="text-center" style="display:none;">
+        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-3">Searching USDA database...</p>
+    </div>
+
+    <!-- Search Results -->
+    <div id="searchResults" style="display:none;">
+        <div class="row mb-3">
+            <div class="col-12">
+                <h3><i class="fas fa-list"></i> Search Results</h3>
+                <p class="text-muted">Click on any food item to view detailed nutrition information</p>
+            </div>
+        </div>
+        <div class="row" id="resultsContainer"></div>
+    </div>
+
+    <!-- Nutrition Details -->
+    <div id="nutritionDetails" style="display:none;">
+        <div class="row mb-3">
+            <div class="col-12">
+                <button class="btn btn-secondary" onclick="backToResults()">
+                    <i class="fas fa-arrow-left"></i> Back to Results
+                </button>
+            </div>
+        </div>
+
+        <div class="card shadow-lg">
+            <div class="card-header">
+                <h3 class="mb-0"><i class="fas fa-utensils"></i> <span id="foodName"></span></h3>
+            </div>
+            <div class="card-body">
+                <!-- Macronutrients -->
+                <div class="row mb-4">
+                    <div class="col-md-3 col-6 mb-3">
+                        <div class="metric-card" style="background: linear-gradient(135deg, #FF6B6B, #FF8E53);">
+                            <i class="fas fa-fire"></i>
+                            <h3 id="calories">0</h3>
+                            <p>Calories (kcal)</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-6 mb-3">
+                        <div class="metric-card" style="background: linear-gradient(135deg, #4ECDC4, #45B7D1);">
+                            <i class="fas fa-drumstick-bite"></i>
+                            <h3 id="protein">0</h3>
+                            <p>Protein (g)</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-6 mb-3">
+                        <div class="metric-card" style="background: linear-gradient(135deg, #FFE66D, #FFD93D);">
+                            <i class="fas fa-bread-slice"></i>
+                            <h3 id="carbs">0</h3>
+                            <p>Carbs (g)</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-6 mb-3">
+                        <div class="metric-card" style="background: linear-gradient(135deg, #A8E6CF, #7EC8A3);">
+                            <i class="fas fa-cheese"></i>
+                            <h3 id="fat">0</h3>
+                            <p>Fat (g)</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Micronutrients -->
+                <h4 class="mb-3"><i class="fas fa-flask"></i> Vitamins & Minerals (per 100g)</h4>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="card border-primary">
+                            <div class="card-body">
+                                <h6><i class="fas fa-leaf text-success"></i> Fiber</h6>
+                                <h4 id="fiber" class="text-primary">0g</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card border-danger">
+                            <div class="card-body">
+                                <h6><i class="fas fa-tint text-danger"></i> Iron</h6>
+                                <h4 id="iron" class="text-danger">0mg</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card border-info">
+                            <div class="card-body">
+                                <h6><i class="fas fa-bone text-info"></i> Calcium</h6>
+                                <h4 id="calcium" class="text-info">0mg</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card border-warning">
+                            <div class="card-body">
+                                <h6><i class="fas fa-eye text-warning"></i> Vitamin A</h6>
+                                <h4 id="vitamin_a" class="text-warning">0µg</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card border-success">
+                            <div class="card-body">
+                                <h6><i class="fas fa-lemon text-success"></i> Vitamin C</h6>
+                                <h4 id="vitamin_c" class="text-success">0mg</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card border-secondary">
+                            <div class="card-body">
+                                <h6><i class="fas fa-fill-drip text-secondary"></i> Sodium</h6>
+                                <h4 id="sodium" class="text-secondary">0mg</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-success mt-4">
+                    <i class="fas fa-info-circle"></i> <strong>Note:</strong> All values are per 100g of the food item. Data sourced from USDA FoodData Central.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Food Comparison Section -->
+    <div class="row mt-5" id="comparisonSection" style="display:none;">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="fas fa-balance-scale"></i> Compare Foods</h4>
+                </div>
+                <div class="card-body">
+                    <canvas id="comparisonChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentResults = [];
+let currentDetails = null;
+
+// Search food
+function searchFood() {
+    const query = document.getElementById('searchInput').value.trim();
+    if (!query) {
+        alert('Please enter a food name to search');
+        return;
+    }
+
+    document.getElementById('searchResults').style.display = 'none';
+    document.getElementById('nutritionDetails').style.display = 'none';
+    document.getElementById('loadingSpinner').style.display = 'block';
+
+    fetch(`/api/usda-search?q=${encodeURIComponent(query)}`)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('loadingSpinner').style.display = 'none';
+            
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
+
+            if (data.length === 0) {
+                alert('No results found. Try different keywords.');
+                return;
+            }
+
+            currentResults = data;
+            displayResults(data);
+        })
+        .catch(error => {
+            document.getElementById('loadingSpinner').style.display = 'none';
+            alert('Error searching: ' + error.message);
+        });
+}
+
+// Display search results
+function displayResults(results) {
+    const container = document.getElementById('resultsContainer');
+    container.innerHTML = '';
+
+    results.forEach(food => {
+        const col = document.createElement('div');
+        col.className = 'col-md-6 col-lg-4 mb-3';
+        col.innerHTML = `
+            <div class="card h-100 shadow-sm" style="cursor:pointer;" onclick="viewDetails(${food.fdc_id})">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="fas fa-utensils text-primary"></i> ${food.name}</h5>
+                    ${food.brand ? `<p class="text-muted mb-1"><small>Brand: ${food.brand}</small></p>` : ''}
+                    ${food.category ? `<p class="text-muted mb-0"><small>Category: ${food.category}</small></p>` : ''}
+                </div>
+                <div class="card-footer bg-light">
+                    <small class="text-primary"><i class="fas fa-arrow-right"></i> Click for details</small>
+                </div>
+            </div>
+        `;
+        container.appendChild(col);
+    });
+
+    document.getElementById('searchResults').style.display = 'block';
+}
+
+// View food details
+function viewDetails(fdcId) {
+    document.getElementById('searchResults').style.display = 'none';
+    document.getElementById('loadingSpinner').style.display = 'block';
+
+    fetch(`/api/usda-details/${fdcId}`)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('loadingSpinner').style.display = 'none';
+            
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
+
+            currentDetails = data;
+            displayDetails(data);
+        })
+        .catch(error => {
+            document.getElementById('loadingSpinner').style.display = 'none';
+            alert('Error fetching details: ' + error.message);
+        });
+}
+
+// Display nutrition details
+function displayDetails(data) {
+    document.getElementById('foodName').textContent = data.name;
+    document.getElementById('calories').textContent = Math.round(data.calories);
+    document.getElementById('protein').textContent = data.protein.toFixed(1);
+    document.getElementById('carbs').textContent = data.carbs.toFixed(1);
+    document.getElementById('fat').textContent = data.fat.toFixed(1);
+    document.getElementById('fiber').textContent = data.fiber.toFixed(1) + 'g';
+    document.getElementById('iron').textContent = data.iron.toFixed(1) + 'mg';
+    document.getElementById('calcium').textContent = Math.round(data.calcium) + 'mg';
+    document.getElementById('vitamin_a').textContent = Math.round(data.vitamin_a) + 'µg';
+    document.getElementById('vitamin_c').textContent = data.vitamin_c.toFixed(1) + 'mg';
+    document.getElementById('sodium').textContent = Math.round(data.sodium) + 'mg';
+
+    document.getElementById('nutritionDetails').style.display = 'block';
+}
+
+// Back to results
+function backToResults() {
+    document.getElementById('nutritionDetails').style.display = 'none';
+    document.getElementById('searchResults').style.display = 'block';
+}
+
+// Search on Enter key
+document.getElementById('searchInput').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        searchFood();
+    }
+});
+</script>
+
+<style>
+.card {
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15) !important;
+}
+
+.metric-card {
+    border-radius: 15px;
+    min-height: 140px;
+}
+
+.metric-card h3 {
+    font-size: 2.5rem;
+    font-weight: bold;
+}
+</style>
+{% endblock %}

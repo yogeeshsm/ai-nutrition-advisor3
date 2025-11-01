@@ -869,6 +869,11 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/nutrition-lookup' %}active{% endif %}" href="/nutrition-lookup">
+                            <i class="fas fa-database"></i> USDA Lookup
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link {% if request.path == '/health-info' %}active{% endif %}" href="/health-info">
                             <i class="fas fa-heartbeat"></i> Health Info
                         </a>
