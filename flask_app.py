@@ -8,14 +8,20 @@ import json
 from datetime import datetime
 import io
 import pandas as pd
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Import custom modules
 import database as db
 import meal_optimizer as mo
 from utils import export_to_pdf, get_food_emoji, format_currency
+from usda_api import get_usda_api
 
 app = Flask(__name__)
-app.secret_key = 'nutrition-advisor-secret-key-2025'  # Change this in production
+app.secret_key = os.environ.get('SECRET_KEY', 'nutrition-advisor-secret-key-2025')
 
 # Initialize database on startup
 db.initialize_database()
@@ -353,6 +359,55 @@ def api_mark_done():
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/nutrition-lookup')
+def nutrition_lookup():
+    """USDA Nutrition Lookup Page"""
+    return render_template('nutrition_lookup.html')
+
+@app.route('/api/usda-search')
+def api_usda_search():
+    """API endpoint to search USDA food database"""
+    query = request.args.get('q', '')
+    
+    if not query:
+        return jsonify({'error': 'No search query provided'}), 400
+    
+    api = get_usda_api()
+    if not api:
+        return jsonify({'error': 'USDA API not configured. Please set USDA_API_KEY environment variable.'}), 500
+    
+    results = api.search_foods(query, page_size=10)
+    return jsonify(results)
+
+@app.route('/api/usda-details/<int:fdc_id>')
+def api_usda_details(fdc_id):
+    """API endpoint to get detailed nutrition info"""
+    api = get_usda_api()
+    if not api:
+        return jsonify({'error': 'USDA API not configured'}), 500
+    
+    details = api.get_nutrition_summary(fdc_id)
+    if not details:
+        return jsonify({'error': 'Food not found'}), 404
+    
+    return jsonify(details)
+
+@app.route('/api/usda-compare', methods=['POST'])
+def api_usda_compare():
+    """API endpoint to compare multiple foods"""
+    data = request.json
+    food_names = data.get('foods', [])
+    
+    if not food_names:
+        return jsonify({'error': 'No foods provided'}), 400
+    
+    api = get_usda_api()
+    if not api:
+        return jsonify({'error': 'USDA API not configured'}), 500
+    
+    comparison = api.compare_foods(food_names)
+    return jsonify(comparison)
 
 if __name__ == '__main__':
     import os

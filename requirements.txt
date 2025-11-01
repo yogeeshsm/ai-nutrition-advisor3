@@ -6,3 +6,5 @@ numpy==1.26.4
 PuLP==2.7.0
 fpdf==1.7.2
 openpyxl==3.1.5
+requests==2.31.0
+python-dotenv==1.0.0
