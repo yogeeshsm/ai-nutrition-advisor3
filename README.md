@@ -1,12 +1,4 @@
----
-title: AI Nutrition Advisor
-emoji: 🍽️
-colorFrom: purple
-colorTo: pink
-sdk: docker
-pinned: false
-license: mit
----
+
 
 # 🍽️ AI Nutrition Advisor for Karnataka Children
 
