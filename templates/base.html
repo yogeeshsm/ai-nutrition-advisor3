@@ -967,6 +967,11 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/chatbot' %}active{% endif %}" href="/chatbot">
+                            <i class="fas fa-robot"></i> AI Chatbot
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link {% if request.path == '/analytics' %}active{% endif %}" href="/analytics">
                             <i class="fas fa-chart-line"></i> Analytics
                         </a>

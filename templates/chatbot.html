@@ -1,0 +1,352 @@
+{% extends "base.html" %}
+
+{% block title %}AI Nutrition Chatbot - AI Nutrition Advisor{% endblock %}
+
+{% block content %}
+<div class="text-center mb-5">
+    <h1 class="display-4 fw-bold" style="color: white;">
+        <i class="fas fa-robot"></i> AI Nutrition Chatbot
+    </h1>
+    <p class="lead" style="color: white; opacity: 0.9;">
+        Get Personalized Nutrition Advice Powered by AI
+    </p>
+</div>
+
+<!-- Chat Container -->
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="card" style="height: 70vh; display: flex; flex-direction: column;">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="fas fa-comments"></i> Chat with Nutrition Expert
+                    </div>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="clearChat()">
+                        <i class="fas fa-trash"></i> Clear Chat
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Chat Messages -->
+            <div class="card-body" id="chatMessages" style="flex: 1; overflow-y: auto; background: #f8f9fa;">
+                <!-- Welcome Message -->
+                <div class="message bot-message">
+                    <div class="message-avatar">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <div class="message-content">
+                        <strong>AI Nutrition Expert</strong>
+                        <p>Hello! I'm your AI nutrition assistant. I can help you with:</p>
+                        <ul>
+                            <li>Meal planning advice for children</li>
+                            <li>Ingredient substitutions</li>
+                            <li>Nutritional questions</li>
+                            <li>Feeding challenges (picky eaters, allergies)</li>
+                            <li>Budget-friendly meal suggestions</li>
+                        </ul>
+                        <p>How can I help you today?</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Chat Input -->
+            <div class="card-footer">
+                <form id="chatForm" class="d-flex gap-2">
+                    <input type="text" 
+                           id="userMessage" 
+                           class="form-control" 
+                           placeholder="Ask me anything about nutrition..." 
+                           required
+                           autocomplete="off">
+                    <button type="submit" class="btn btn-primary" id="sendBtn">
+                        <i class="fas fa-paper-plane"></i> Send
+                    </button>
+                </form>
+                
+                <!-- Quick Questions -->
+                <div class="mt-3">
+                    <small class="text-muted">Quick questions:</small>
+                    <div class="d-flex flex-wrap gap-2 mt-1">
+                        <button class="btn btn-sm btn-outline-primary" onclick="askQuestion('What are good protein sources for vegetarian children?')">
+                            Protein sources
+                        </button>
+                        <button class="btn btn-sm btn-outline-primary" onclick="askQuestion('My child refuses vegetables. What should I do?')">
+                            Picky eater
+                        </button>
+                        <button class="btn btn-sm btn-outline-primary" onclick="askQuestion('How to increase iron in diet?')">
+                            Iron-rich foods
+                        </button>
+                        <button class="btn btn-sm btn-outline-primary" onclick="askQuestion('Budget-friendly meal ideas?')">
+                            Budget meals
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.message {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.message-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.bot-message .message-avatar {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.user-message .message-avatar {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+}
+
+.message-content {
+    flex: 1;
+    background: white;
+    padding: 12px 16px;
+    border-radius: 12px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.user-message .message-content {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.bot-message .message-content {
+    background: white;
+    color: #333;
+}
+
+.message-content strong {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 14px;
+}
+
+.message-content p:last-child {
+    margin-bottom: 0;
+}
+
+.message-content ul {
+    margin: 8px 0;
+    padding-left: 20px;
+}
+
+.typing-indicator {
+    display: inline-flex;
+    gap: 4px;
+    padding: 8px;
+}
+
+.typing-indicator span {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #667eea;
+    animation: typing 1.4s infinite;
+}
+
+.typing-indicator span:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.typing-indicator span:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes typing {
+    0%, 60%, 100% {
+        transform: translateY(0);
+    }
+    30% {
+        transform: translateY(-10px);
+    }
+}
+
+#chatMessages {
+    scroll-behavior: smooth;
+}
+</style>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let conversationHistory = [];
+
+// Handle form submission
+$('#chatForm').on('submit', function(e) {
+    e.preventDefault();
+    
+    const message = $('#userMessage').val().trim();
+    if (!message) return;
+    
+    // Add user message to chat
+    addMessage('user', message);
+    
+    // Clear input
+    $('#userMessage').val('');
+    
+    // Show typing indicator
+    showTypingIndicator();
+    
+    // Send to backend
+    $.ajax({
+        url: '/api/chatbot',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            message: message,
+            history: conversationHistory
+        }),
+        success: function(response) {
+            removeTypingIndicator();
+            
+            if (response.success) {
+                addMessage('bot', response.response);
+                
+                // Update conversation history
+                conversationHistory.push(
+                    { role: 'user', content: message },
+                    { role: 'assistant', content: response.response }
+                );
+                
+                // Keep only last 10 messages
+                if (conversationHistory.length > 10) {
+                    conversationHistory = conversationHistory.slice(-10);
+                }
+            } else {
+                addMessage('bot', 'Sorry, I encountered an error. Please try again.');
+            }
+        },
+        error: function(xhr) {
+            removeTypingIndicator();
+            const error = xhr.responseJSON?.error || 'Failed to get response';
+            addMessage('bot', `Error: ${error}`);
+        }
+    });
+});
+
+function addMessage(role, content) {
+    const isBot = role === 'bot';
+    const avatar = isBot ? '<i class="fas fa-robot"></i>' : '<i class="fas fa-user"></i>';
+    const name = isBot ? 'AI Nutrition Expert' : 'You';
+    const messageClass = isBot ? 'bot-message' : 'user-message';
+    
+    // Convert markdown-like formatting to HTML
+    const formattedContent = formatMessage(content);
+    
+    const messageHTML = `
+        <div class="message ${messageClass}">
+            <div class="message-avatar">
+                ${avatar}
+            </div>
+            <div class="message-content">
+                <strong>${name}</strong>
+                ${formattedContent}
+            </div>
+        </div>
+    `;
+    
+    $('#chatMessages').append(messageHTML);
+    scrollToBottom();
+}
+
+function formatMessage(content) {
+    // Convert newlines to <br>
+    content = content.replace(/\n/g, '<br>');
+    
+    // Convert **bold** to <strong>
+    content = content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    
+    // Convert numbered lists
+    content = content.replace(/^\d+\.\s(.+)$/gm, '<li>$1</li>');
+    if (content.includes('<li>')) {
+        content = content.replace(/(<li>.*<\/li>)/s, '<ol>$1</ol>');
+    }
+    
+    // Convert bullet points
+    content = content.replace(/^[-•]\s(.+)$/gm, '<li>$1</li>');
+    if (content.includes('<li>') && !content.includes('<ol>')) {
+        content = content.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+    }
+    
+    return `<p>${content}</p>`;
+}
+
+function showTypingIndicator() {
+    const typingHTML = `
+        <div class="message bot-message" id="typingIndicator">
+            <div class="message-avatar">
+                <i class="fas fa-robot"></i>
+            </div>
+            <div class="message-content">
+                <div class="typing-indicator">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+        </div>
+    `;
+    $('#chatMessages').append(typingHTML);
+    scrollToBottom();
+}
+
+function removeTypingIndicator() {
+    $('#typingIndicator').remove();
+}
+
+function scrollToBottom() {
+    const chatMessages = document.getElementById('chatMessages');
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function askQuestion(question) {
+    $('#userMessage').val(question);
+    $('#chatForm').submit();
+}
+
+function clearChat() {
+    if (confirm('Clear all chat messages?')) {
+        conversationHistory = [];
+        $('#chatMessages').empty();
+        
+        // Add welcome message back
+        addMessage('bot', `Hello! I'm your AI nutrition assistant. I can help you with meal planning, ingredient substitutions, nutritional questions, and more. How can I help you today?`);
+    }
+}
+
+// Focus input on load
+$(document).ready(function() {
+    $('#userMessage').focus();
+});
+</script>
+{% endblock %}

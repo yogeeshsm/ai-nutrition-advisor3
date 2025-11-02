@@ -20,9 +20,13 @@ import meal_optimizer as mo
 from utils import export_to_pdf, get_food_emoji, format_currency
 from usda_api import get_usda_api
 from who_immunization import who_api
+from gemini_chatbot import get_chatbot
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'nutrition-advisor-secret-key-2025')
+
+# Initialize chatbot
+chatbot = get_chatbot()
 
 # Initialize database on startup
 db.initialize_database()
@@ -560,6 +564,84 @@ def generate_qr(plan_id):
     img_io.seek(0)
     
     return send_file(img_io, mimetype='image/png', download_name=f'meal_plan_qr_{plan_id}.png')
+
+@app.route('/chatbot')
+def chatbot_page():
+    """AI Nutrition Chatbot Page"""
+    return render_template('chatbot.html')
+
+@app.route('/api/chatbot', methods=['POST'])
+def api_chatbot():
+    """API endpoint for chatbot conversation"""
+    try:
+        data = request.json
+        user_message = data.get('message', '')
+        conversation_history = data.get('history', [])
+        
+        if not user_message:
+            return jsonify({'success': False, 'error': 'No message provided'}), 400
+        
+        if not chatbot:
+            return jsonify({
+                'success': False, 
+                'error': 'Chatbot not initialized. Please set GEMINI_API_KEY environment variable.'
+            }), 500
+        
+        # Get response from chatbot
+        response = chatbot.chat(user_message, conversation_history)
+        
+        return jsonify({
+            'success': True,
+            'response': response
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/chatbot/meal-advice', methods=['POST'])
+def api_chatbot_meal_advice():
+    """Get AI advice about a specific meal plan"""
+    try:
+        data = request.json
+        meal_plan_data = data.get('meal_plan', {})
+        concern = data.get('concern', 'general advice')
+        
+        if not chatbot:
+            return jsonify({'success': False, 'error': 'Chatbot not available'}), 500
+        
+        advice = chatbot.get_meal_advice(meal_plan_data, concern)
+        
+        return jsonify({
+            'success': True,
+            'advice': advice
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/chatbot/suggest-alternatives', methods=['POST'])
+def api_chatbot_alternatives():
+    """Get AI suggestions for ingredient alternatives"""
+    try:
+        data = request.json
+        ingredient = data.get('ingredient', '')
+        reason = data.get('reason', 'general')
+        
+        if not ingredient:
+            return jsonify({'success': False, 'error': 'No ingredient provided'}), 400
+        
+        if not chatbot:
+            return jsonify({'success': False, 'error': 'Chatbot not available'}), 500
+        
+        suggestions = chatbot.suggest_alternatives(ingredient, reason)
+        
+        return jsonify({
+            'success': True,
+            'suggestions': suggestions
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 if __name__ == '__main__':
     import os
