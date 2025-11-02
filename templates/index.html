@@ -50,6 +50,81 @@
             </div>
 
             <hr class="my-4">
+            
+            <!-- Dietary Preferences & Allergies -->
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <h5 class="mb-3">
+                        <i class="fas fa-filter"></i> Dietary Preferences & Allergies
+                    </h5>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Dietary Preference</label>
+                    <select class="form-select" id="dietaryPreference" onchange="applyFilters()">
+                        <option value="all">All Foods</option>
+                        <option value="vegetarian">Vegetarian</option>
+                        <option value="vegan">Vegan</option>
+                        <option value="non-veg">Non-Vegetarian Only</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Exclude Allergens</label>
+                    <div class="btn-group-toggle" data-toggle="buttons">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="allergen-dairy" value="dairy" onchange="applyFilters()">
+                                    <label class="form-check-label" for="allergen-dairy">
+                                        <i class="fas fa-cheese"></i> Dairy
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="allergen-nuts" value="nuts" onchange="applyFilters()">
+                                    <label class="form-check-label" for="allergen-nuts">
+                                        <i class="fas fa-seedling"></i> Nuts
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="allergen-gluten" value="gluten" onchange="applyFilters()">
+                                    <label class="form-check-label" for="allergen-gluten">
+                                        <i class="fas fa-bread-slice"></i> Gluten
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="allergen-eggs" value="eggs" onchange="applyFilters()">
+                                    <label class="form-check-label" for="allergen-eggs">
+                                        <i class="fas fa-egg"></i> Eggs
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="allergen-soy" value="soy" onchange="applyFilters()">
+                                    <label class="form-check-label" for="allergen-soy">
+                                        <i class="fas fa-leaf"></i> Soy
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="allergen-fish" value="fish" onchange="applyFilters()">
+                                    <label class="form-check-label" for="allergen-fish">
+                                        <i class="fas fa-fish"></i> Fish
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <hr class="my-4">
 
             <h5 class="mb-3">
                 <i class="fas fa-shopping-basket"></i> Select Available Ingredients
@@ -67,6 +142,7 @@
                     <i class="fas fa-star"></i> Recommended
                 </button>
                 <span class="badge bg-primary ms-3" id="selectedCount">0 ingredients selected</span>
+                <span class="badge bg-warning text-dark ms-2" id="filteredCount" style="display:none;">0 hidden by filters</span>
             </div>
 
             <!-- Ingredient Categories -->
@@ -337,6 +413,83 @@ const recommendedIngredients = [
     'Milk', 'Eggs', 'Cooking Oil', 'Jaggery (Gur)'
 ];
 
+// Ingredient allergen/dietary data
+const ingredientMetadata = {
+    'Milk': { vegetarian: true, vegan: false, allergens: ['dairy'] },
+    'Paneer (Cottage Cheese)': { vegetarian: true, vegan: false, allergens: ['dairy'] },
+    'Curd (Yogurt)': { vegetarian: true, vegan: false, allergens: ['dairy'] },
+    'Ghee (Clarified Butter)': { vegetarian: true, vegan: false, allergens: ['dairy'] },
+    'Eggs': { vegetarian: false, vegan: false, allergens: ['eggs'] },
+    'Chicken': { vegetarian: false, vegan: false, allergens: [] },
+    'Fish': { vegetarian: false, vegan: false, allergens: ['fish'] },
+    'Peanuts': { vegetarian: true, vegan: true, allergens: ['nuts'] },
+    'Almonds': { vegetarian: true, vegan: true, allergens: ['nuts'] },
+    'Cashews': { vegetarian: true, vegan: true, allergens: ['nuts'] },
+    'Soya Chunks': { vegetarian: true, vegan: true, allergens: ['soy'] },
+    'Tofu': { vegetarian: true, vegan: true, allergens: ['soy'] },
+    'Wheat Flour (Atta)': { vegetarian: true, vegan: true, allergens: ['gluten'] },
+    'Bread': { vegetarian: true, vegan: true, allergens: ['gluten'] },
+    // All other ingredients default to vegetarian, vegan, no allergens
+};
+
+// Get ingredient metadata with defaults
+function getIngredientMeta(name) {
+    return ingredientMetadata[name] || { vegetarian: true, vegan: true, allergens: [] };
+}
+
+// Apply dietary and allergen filters
+function applyFilters() {
+    const dietary = $('#dietaryPreference').val();
+    const excludeAllergens = [];
+    
+    // Collect checked allergens
+    $('input[id^="allergen-"]:checked').each(function() {
+        excludeAllergens.push($(this).val());
+    });
+    
+    let hiddenCount = 0;
+    
+    // Filter ingredients
+    $('.ingredient-item').each(function() {
+        const checkbox = $(this).find('.ingredient-checkbox');
+        const ingredientName = checkbox.data('name');
+        const meta = getIngredientMeta(ingredientName);
+        
+        let shouldHide = false;
+        
+        // Apply dietary filter
+        if (dietary === 'vegetarian' && !meta.vegetarian) {
+            shouldHide = true;
+        } else if (dietary === 'vegan' && !meta.vegan) {
+            shouldHide = true;
+        } else if (dietary === 'non-veg' && meta.vegetarian) {
+            shouldHide = true;
+        }
+        
+        // Apply allergen filter
+        if (excludeAllergens.some(allergen => meta.allergens.includes(allergen))) {
+            shouldHide = true;
+        }
+        
+        if (shouldHide) {
+            $(this).hide();
+            checkbox.prop('checked', false); // Uncheck hidden items
+            hiddenCount++;
+        } else {
+            $(this).show();
+        }
+    });
+    
+    // Update filtered count badge
+    if (hiddenCount > 0) {
+        $('#filteredCount').text(`${hiddenCount} hidden by filters`).show();
+    } else {
+        $('#filteredCount').hide();
+    }
+    
+    updateCount();
+}
+
 // Update budget calculations
 $('#numChildren, #budget').on('input', function() {
     const children = parseInt($('#numChildren').val()) || 1;
@@ -362,7 +515,7 @@ function updateCount() {
 
 // Selection functions
 function selectAll() {
-    $('.ingredient-checkbox').prop('checked', true);
+    $('.ingredient-checkbox:visible').prop('checked', true); // Only select visible
     updateCount();
 }
 
