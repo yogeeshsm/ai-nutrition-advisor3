@@ -20,8 +20,8 @@ class NutritionChatbot:
         # Configure Gemini
         genai.configure(api_key=self.api_key)
         
-        # Initialize the model
-        self.model = genai.GenerativeModel('gemini-pro')
+        # Initialize the model (using latest stable Gemini 2.0 Flash)
+        self.model = genai.GenerativeModel('gemini-2.0-flash')
         
         # System context for nutrition expertise
         self.system_context = """You are an expert nutritionist and dietitian specializing in child nutrition for Anganwadi centers in India. 
