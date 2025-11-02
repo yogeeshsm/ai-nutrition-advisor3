@@ -846,6 +846,79 @@
                 font-size: 2rem;
             }
         }
+        
+        /* Print-Friendly Styles */
+        @media print {
+            body {
+                background: white !important;
+                animation: none !important;
+            }
+            
+            .navbar,
+            .btn,
+            .no-print {
+                display: none !important;
+            }
+            
+            .container {
+                max-width: 100% !important;
+                padding: 20px !important;
+            }
+            
+            .card {
+                box-shadow: none !important;
+                border: 1px solid #ddd !important;
+                page-break-inside: avoid;
+                margin-bottom: 20px !important;
+            }
+            
+            .card-header {
+                background: #f8f9fa !important;
+                color: #000 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            
+            table {
+                page-break-inside: auto;
+            }
+            
+            tr {
+                page-break-inside: avoid;
+                page-break-after: auto;
+            }
+            
+            h1, h2, h3, h4, h5, h6 {
+                page-break-after: avoid;
+                color: #000 !important;
+            }
+            
+            .badge {
+                border: 1px solid #ddd !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            
+            /* Add print header */
+            .print-mode::before {
+                content: "AI Nutrition Advisor - Meal Plan";
+                display: block;
+                text-align: center;
+                font-size: 24px;
+                font-weight: bold;
+                padding: 20px;
+                border-bottom: 2px solid #000;
+                margin-bottom: 20px;
+            }
+            
+            /* Add print footer with page numbers */
+            @page {
+                margin: 2cm;
+                @bottom-right {
+                    content: "Page " counter(page) " of " counter(pages);
+                }
+            }
+        }
     </style>
     
     {% block extra_css %}{% endblock %}
@@ -881,6 +954,11 @@
                     <li class="nav-item">
                         <a class="nav-link {% if request.path == '/immunisation' %}active{% endif %}" href="/immunisation">
                             <i class="fas fa-syringe"></i> Immunisation
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/growth-tracking' %}active{% endif %}" href="/growth-tracking">
+                            <i class="fas fa-child"></i> Growth Tracking
                         </a>
                     </li>
                     <li class="nav-item">

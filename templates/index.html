@@ -286,19 +286,31 @@
     <!-- Export Options -->
     <div class="card">
         <div class="card-header">
-            <i class="fas fa-download"></i> Export Meal Plan
+            <i class="fas fa-download"></i> Export & Share Meal Plan
         </div>
         <div class="card-body">
-            <div class="text-center">
-                <button class="btn btn-secondary me-2" onclick="exportCSV()">
-                    <i class="fas fa-file-csv"></i> Download CSV
-                </button>
-                <button class="btn btn-secondary me-2" onclick="exportPDF()">
-                    <i class="fas fa-file-pdf"></i> Download PDF
-                </button>
-                <button class="btn btn-secondary" onclick="exportJSON()">
-                    <i class="fas fa-file-code"></i> Download JSON
-                </button>
+            <div class="row">
+                <div class="col-md-9 text-center">
+                    <button class="btn btn-secondary me-2 mb-2" onclick="exportCSV()">
+                        <i class="fas fa-file-csv"></i> Download CSV
+                    </button>
+                    <button class="btn btn-secondary me-2 mb-2" onclick="exportPDF()">
+                        <i class="fas fa-file-pdf"></i> Download PDF
+                    </button>
+                    <button class="btn btn-secondary me-2 mb-2" onclick="exportJSON()">
+                        <i class="fas fa-file-code"></i> Download JSON
+                    </button>
+                    <button class="btn btn-primary mb-2" onclick="printMealPlan()">
+                        <i class="fas fa-print"></i> Print
+                    </button>
+                </div>
+                <div class="col-md-3 text-center">
+                    <div class="no-print">
+                        <p class="mb-2"><strong>QR Code</strong></p>
+                        <img id="qrCode" src="" alt="QR Code" style="max-width: 150px; display: none;" class="img-fluid border rounded">
+                        <p class="small text-muted mt-1">Scan to share plan</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -403,6 +415,12 @@ $('#mealPlanForm').on('submit', function(e) {
         success: function(response) {
             currentPlan = response;
             displayResults(response);
+            
+            // Load QR code
+            if (response.plan_id) {
+                $('#qrCode').attr('src', `/api/generate-qr/${response.plan_id}`).show();
+            }
+            
             $('#loadingSpinner').removeClass('active');
             $('#resultsSection').show();
             $('html, body').animate({
@@ -830,6 +848,24 @@ function exportPDF() {
 
 function exportJSON() {
     window.location.href = '/api/export-json';
+}
+
+function printMealPlan() {
+    // Add print-specific class
+    document.body.classList.add('print-mode');
+    
+    // Hide unnecessary elements
+    const hideElements = document.querySelectorAll('.card:not(#resultsSection)');
+    hideElements.forEach(el => el.style.display = 'none');
+    
+    // Trigger print
+    window.print();
+    
+    // Restore after print
+    setTimeout(() => {
+        document.body.classList.remove('print-mode');
+        hideElements.forEach(el => el.style.display = '');
+    }, 1000);
 }
 
 // Initialize

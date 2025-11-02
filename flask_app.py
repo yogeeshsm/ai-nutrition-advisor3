@@ -361,6 +361,92 @@ def api_mark_done():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
+@app.route('/growth-tracking')
+def growth_tracking():
+    """Growth Tracking Page"""
+    children = db.get_all_children()
+    return render_template('growth_tracking.html', children=children.to_dict('records'))
+
+@app.route('/api/growth-data/<int:child_id>')
+def api_growth_data(child_id):
+    """API endpoint to get growth data for a child"""
+    try:
+        # Get growth history
+        history = db.get_child_growth_history(child_id)
+        
+        # Get latest measurement
+        latest = db.get_latest_growth(child_id)
+        
+        # Get chart data
+        chart_df = db.get_growth_chart_data(child_id)
+        
+        # Calculate WHO Z-scores if latest measurement exists
+        who_status = 'No data'
+        if latest and len(chart_df) > 0:
+            age_months = chart_df.iloc[-1]['age_months']
+            gender = chart_df.iloc[-1]['gender']
+            z_scores = db.calculate_who_z_scores(
+                age_months, 
+                latest['weight_kg'], 
+                latest['height_cm'], 
+                gender
+            )
+            who_status = z_scores['status']
+        
+        # Format chart data
+        chart_data = {
+            'dates': chart_df['measurement_date'].dt.strftime('%Y-%m-%d').tolist() if len(chart_df) > 0 else [],
+            'weights': chart_df['weight_kg'].tolist() if len(chart_df) > 0 else [],
+            'heights': chart_df['height_cm'].tolist() if len(chart_df) > 0 else [],
+            'bmis': chart_df['bmi'].fillna(0).tolist() if len(chart_df) > 0 else [],
+            'weight_velocity': [],
+            'height_velocity': []
+        }
+        
+        # Calculate growth velocity (gain per month)
+        if len(chart_df) > 1:
+            for i in range(1, len(chart_df)):
+                days_diff = (chart_df.iloc[i]['measurement_date'] - chart_df.iloc[i-1]['measurement_date']).days
+                months_diff = days_diff / 30.44 if days_diff > 0 else 1
+                
+                weight_gain = (chart_df.iloc[i]['weight_kg'] - chart_df.iloc[i-1]['weight_kg']) / months_diff
+                height_gain = (chart_df.iloc[i]['height_cm'] - chart_df.iloc[i-1]['height_cm']) / months_diff
+                
+                chart_data['weight_velocity'].append(round(weight_gain, 2))
+                chart_data['height_velocity'].append(round(height_gain, 2))
+        
+        return jsonify({
+            'success': True,
+            'latest': latest,
+            'history': history.to_dict('records'),
+            'chart_data': chart_data,
+            'who_status': who_status
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/add-growth-measurement', methods=['POST'])
+def api_add_growth_measurement():
+    """API endpoint to add a new growth measurement"""
+    try:
+        data = request.json
+        measurement_id = db.add_growth_measurement(
+            child_id=data['child_id'],
+            measurement_date=data['measurement_date'],
+            weight_kg=data['weight_kg'],
+            height_cm=data['height_cm'],
+            head_circumference_cm=data.get('head_circumference_cm'),
+            muac_cm=data.get('muac_cm'),
+            notes=data.get('notes', ''),
+            measured_by=data.get('measured_by', '')
+        )
+        return jsonify({'success': True, 'measurement_id': measurement_id})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
 @app.route('/nutrition-lookup')
 def nutrition_lookup():
     """USDA Nutrition Lookup Page"""
@@ -451,6 +537,29 @@ def api_who_disease_info():
         return jsonify(info)
     else:
         return jsonify({'error': 'Disease not found'}), 404
+
+@app.route('/api/generate-qr/<int:plan_id>')
+def generate_qr(plan_id):
+    """Generate QR code for meal plan sharing"""
+    import qrcode
+    from io import BytesIO
+    
+    # Create URL for this meal plan
+    plan_url = f"{request.url_root}plan/{plan_id}"
+    
+    # Generate QR code
+    qr = qrcode.QRCode(version=1, box_size=10, border=4)
+    qr.add_data(plan_url)
+    qr.make(fit=True)
+    
+    img = qr.make_image(fill_color="black", back_color="white")
+    
+    # Save to BytesIO
+    img_io = BytesIO()
+    img.save(img_io, 'PNG')
+    img_io.seek(0)
+    
+    return send_file(img_io, mimetype='image/png', download_name=f'meal_plan_qr_{plan_id}.png')
 
 if __name__ == '__main__':
     import os

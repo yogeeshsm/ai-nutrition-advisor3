@@ -34,7 +34,11 @@ def initialize_database():
             fiber_per_100g REAL,
             iron_per_100g REAL,
             calcium_per_100g REAL,
-            serving_size_g REAL DEFAULT 100
+            serving_size_g REAL DEFAULT 100,
+            is_vegetarian INTEGER DEFAULT 1,
+            is_vegan INTEGER DEFAULT 0,
+            allergens TEXT,
+            dietary_tags TEXT
         )
     """)
     
@@ -110,6 +114,42 @@ def initialize_database():
             age_group TEXT,
             severity TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    
+    # Create growth tracking table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS growth_tracking (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            child_id INTEGER NOT NULL,
+            measurement_date DATE NOT NULL,
+            weight_kg REAL NOT NULL,
+            height_cm REAL NOT NULL,
+            bmi REAL,
+            head_circumference_cm REAL,
+            muac_cm REAL,
+            notes TEXT,
+            measured_by TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (child_id) REFERENCES children(id)
+        )
+    """)
+    
+    # Create dietary preferences table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS dietary_preferences (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            child_id INTEGER NOT NULL,
+            is_vegetarian INTEGER DEFAULT 0,
+            is_vegan INTEGER DEFAULT 0,
+            is_halal INTEGER DEFAULT 0,
+            is_kosher INTEGER DEFAULT 0,
+            allergies TEXT,
+            food_dislikes TEXT,
+            medical_restrictions TEXT,
+            notes TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (child_id) REFERENCES children(id)
         )
     """)
     
@@ -508,6 +548,121 @@ def search_health_info(search_term):
         ORDER BY disease_name
     """, conn, params=(f'%{search_term}%', f'%{search_term}%', f'%{search_term}%'))
     conn.close()
+    return df
+
+# Growth Tracking Functions
+def add_growth_measurement(child_id, measurement_date, weight_kg, height_cm, 
+                          head_circumference_cm=None, muac_cm=None, 
+                          notes='', measured_by=''):
+    """Add a new growth measurement for a child"""
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    # Calculate BMI
+    bmi = round(weight_kg / ((height_cm / 100) ** 2), 2) if height_cm > 0 else None
+    
+    cursor.execute("""
+        INSERT INTO growth_tracking 
+        (child_id, measurement_date, weight_kg, height_cm, bmi, 
+         head_circumference_cm, muac_cm, notes, measured_by)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (child_id, measurement_date, weight_kg, height_cm, bmi, 
+          head_circumference_cm, muac_cm, notes, measured_by))
+    
+    conn.commit()
+    measurement_id = cursor.lastrowid
+    conn.close()
+    return measurement_id
+
+def get_child_growth_history(child_id):
+    """Get all growth measurements for a specific child"""
+    conn = get_connection()
+    df = pd.read_sql_query("""
+        SELECT gt.*, c.name as child_name, c.date_of_birth, c.gender
+        FROM growth_tracking gt
+        JOIN children c ON gt.child_id = c.id
+        WHERE gt.child_id = ?
+        ORDER BY gt.measurement_date DESC
+    """, conn, params=(child_id,))
+    conn.close()
+    return df
+
+def get_latest_growth(child_id):
+    """Get the most recent growth measurement for a child"""
+    conn = get_connection()
+    df = pd.read_sql_query("""
+        SELECT * FROM growth_tracking
+        WHERE child_id = ?
+        ORDER BY measurement_date DESC
+        LIMIT 1
+    """, conn, params=(child_id,))
+    conn.close()
+    return df.to_dict('records')[0] if len(df) > 0 else None
+
+def calculate_who_z_scores(age_months, weight_kg, height_cm, gender):
+    """
+    Calculate WHO Z-scores for weight-for-age, height-for-age, and weight-for-height
+    This is a simplified version - in production, use WHO growth standards tables
+    """
+    # Simplified WHO growth standards (approximate values)
+    # In production, use actual WHO tables from: https://www.who.int/tools/child-growth-standards
+    
+    z_scores = {
+        'weight_for_age': 0,
+        'height_for_age': 0,
+        'weight_for_height': 0,
+        'status': 'Normal'
+    }
+    
+    # Simplified calculation (replace with actual WHO standards)
+    if gender.lower() == 'male':
+        expected_weight = 3.3 + (age_months * 0.45)  # Rough approximation
+        expected_height = 50 + (age_months * 1.5)
+    else:
+        expected_weight = 3.2 + (age_months * 0.42)
+        expected_height = 49.5 + (age_months * 1.4)
+    
+    # Calculate z-scores (simplified)
+    z_scores['weight_for_age'] = round((weight_kg - expected_weight) / (expected_weight * 0.15), 2)
+    z_scores['height_for_age'] = round((height_cm - expected_height) / (expected_height * 0.08), 2)
+    
+    # Determine nutritional status
+    if z_scores['weight_for_age'] < -3:
+        z_scores['status'] = 'Severely Underweight'
+    elif z_scores['weight_for_age'] < -2:
+        z_scores['status'] = 'Underweight'
+    elif z_scores['weight_for_age'] > 2:
+        z_scores['status'] = 'Overweight'
+    else:
+        z_scores['status'] = 'Normal'
+    
+    return z_scores
+
+def get_growth_chart_data(child_id):
+    """Get formatted data for growth charts"""
+    conn = get_connection()
+    df = pd.read_sql_query("""
+        SELECT 
+            gt.measurement_date,
+            gt.weight_kg,
+            gt.height_cm,
+            gt.bmi,
+            gt.head_circumference_cm,
+            c.date_of_birth,
+            c.gender
+        FROM growth_tracking gt
+        JOIN children c ON gt.child_id = c.id
+        WHERE gt.child_id = ?
+        ORDER BY gt.measurement_date ASC
+    """, conn, params=(child_id,))
+    conn.close()
+    
+    # Calculate age in months for each measurement
+    if len(df) > 0:
+        df['measurement_date'] = pd.to_datetime(df['measurement_date'])
+        df['date_of_birth'] = pd.to_datetime(df['date_of_birth'])
+        df['age_months'] = ((df['measurement_date'] - df['date_of_birth']).dt.days / 30.44).astype(int)
+    
     return df
 
 if __name__ == "__main__":
