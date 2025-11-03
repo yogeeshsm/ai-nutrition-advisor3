@@ -3,7 +3,7 @@ Flask-based AI Nutrition Advisor
 Modern web application with beautiful UI for generating meal plans
 """
 
-from flask import Flask, render_template, request, jsonify, send_file, session
+from flask import Flask, render_template, request, jsonify, send_file, session, redirect, url_for
 import json
 from datetime import datetime
 import io
@@ -21,12 +21,28 @@ from utils import export_to_pdf, get_food_emoji, format_currency
 from usda_api import get_usda_api
 from who_immunization import who_api
 from gemini_chatbot import get_chatbot
+from translator import get_translation_service, LANGUAGES, t
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'nutrition-advisor-secret-key-2025')
 
+# Initialize translation service
+translation_service = get_translation_service()
+
 # Initialize chatbot
 chatbot = get_chatbot()
+
+# Make translation functions available in templates
+@app.context_processor
+def inject_translation():
+    """Inject translation functions into all templates"""
+    lang = session.get('language', 'en')
+    return dict(
+        t=lambda key: translation_service.get_translation(key, lang),
+        current_language=lang,
+        languages=LANGUAGES,
+        translate=lambda text: translation_service.translate(text, lang) if lang != 'en' else text
+    )
 
 # Initialize database on startup
 db.initialize_database()
@@ -245,6 +261,17 @@ def analytics():
 def about():
     """About page"""
     return render_template('about.html')
+
+@app.route('/set_language/<lang>')
+def set_language(lang):
+    """Set user's preferred language"""
+    # Validate language code
+    if lang in LANGUAGES:
+        session['language'] = lang
+        session.permanent = True  # Make session permanent
+    
+    # Redirect back to the page they came from or home
+    return redirect(request.referrer or url_for('index'))
 
 def format_weekly_plan(weekly_plan):
     """Format weekly plan for frontend display"""

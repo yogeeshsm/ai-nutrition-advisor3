@@ -919,6 +919,66 @@
                 }
             }
         }
+        
+        /* Language Switcher Styles */
+        #languageDropdown {
+            font-size: 0.95rem;
+            padding: 8px 15px;
+            border-radius: 20px;
+            background: rgba(79, 172, 254, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        #languageDropdown:hover {
+            background: rgba(79, 172, 254, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        #languageDropdown i {
+            margin-right: 5px;
+        }
+        
+        .dropdown-menu {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+            padding: 10px 0;
+            animation: fadeInDown 0.3s ease;
+        }
+        
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .dropdown-item {
+            padding: 10px 20px;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+        }
+        
+        .dropdown-item:hover {
+            background: linear-gradient(90deg, rgba(79, 172, 254, 0.1), rgba(0, 242, 234, 0.1));
+            color: var(--primary-color);
+            padding-left: 25px;
+        }
+        
+        .dropdown-item.active {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            font-weight: 600;
+        }
+        
+        .dropdown-divider {
+            margin: 8px 0;
+            border-color: rgba(0,0,0,0.1);
+        }
     </style>
     
     {% block extra_css %}{% endblock %}
@@ -980,6 +1040,61 @@
                         <a class="nav-link {% if request.path == '/about' %}active{% endif %}" href="/about">
                             <i class="fas fa-info-circle"></i> About
                         </a>
+                    </li>
+                </ul>
+                
+                <!-- Language Switcher -->
+                <ul class="navbar-nav">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="languageDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-globe"></i> 
+                            {% if session.get('language') == 'hi' %}
+                                हिन्दी
+                            {% elif session.get('language') == 'ta' %}
+                                தமிழ்
+                            {% elif session.get('language') == 'te' %}
+                                తెలుగు
+                            {% elif session.get('language') == 'kn' %}
+                                ಕನ್ನಡ
+                            {% elif session.get('language') == 'bn' %}
+                                বাংলা
+                            {% else %}
+                                English
+                            {% endif %}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="languageDropdown">
+                            <li>
+                                <a class="dropdown-item {% if not session.get('language') or session.get('language') == 'en' %}active{% endif %}" href="/set_language/en">
+                                    🇬🇧 English
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item {% if session.get('language') == 'hi' %}active{% endif %}" href="/set_language/hi">
+                                    🇮🇳 हिन्दी (Hindi)
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if session.get('language') == 'ta' %}active{% endif %}" href="/set_language/ta">
+                                    🇮🇳 தமிழ் (Tamil)
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if session.get('language') == 'te' %}active{% endif %}" href="/set_language/te">
+                                    🇮🇳 తెలుగు (Telugu)
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if session.get('language') == 'kn' %}active{% endif %}" href="/set_language/kn">
+                                    🇮🇳 ಕನ್ನಡ (Kannada)
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if session.get('language') == 'bn' %}active{% endif %}" href="/set_language/bn">
+                                    🇮🇳 বাংলা (Bengali)
+                                </a>
+                            </li>
+                        </ul>
                     </li>
                 </ul>
             </div>
