@@ -1,12 +1,4 @@
----
-title: AI Nutrition Advisor
-emoji: 🍽️
-colorFrom: purple
-colorTo: pink
-sdk: docker
-pinned: false
-license: mit
----
+
 
 # 🍽️ AI Nutrition Advisor for Karnataka Children
 
@@ -268,15 +260,49 @@ The nutrition score (0-100) is calculated based on:
 - Below 90%: Proportional reduction
 - Above 110%: Penalty for excess
 
-## 🌐 Language Support
+## 🌐 Multilingual Support
 
-Supports translation to:
-- 🇬🇧 English
-- 🇮🇳 Hindi (हिंदी)
-- 🇮🇳 Telugu (తెలుగు)
+The application supports both curated UI translations and on-demand dynamic translations.
+
+Languages currently supported:
+- 🇬🇧 English (default)
+- 🇮🇳 Hindi (हिन्दी)
 - 🇮🇳 Tamil (தமிழ்)
+- 🇮🇳 Telugu (తెలుగు)
+- 🇮🇳 Kannada (ಕನ್ನಡ)
+- 🇮🇳 Bengali (বাংলা)
 
-*Note: Translation uses Google Translate API and requires internet connection*
+How translations work:
+
+- UI labels and common nutrition terms are provided as curated (pre-translated) strings in `translator.py` to ensure accuracy for key phrases.
+- Dynamic or user-generated content (for example, free-text messages sent to the chatbot) can be translated on demand using the community `googletrans` library.
+
+Enable dynamic translations locally:
+
+1. Install the translation dependency:
+
+```powershell
+pip install googletrans==4.0.0rc1
+```
+
+2. Restart the Flask server so the translation module is loaded:
+
+```powershell
+python flask_app.py
+```
+
+3. Use the language picker in the top-right of the navigation bar to switch languages. The app saves your choice in the session and will render the UI strings from `translator.py` for the selected language.
+
+Notes and troubleshooting:
+
+- If the server logs show `⚠️ googletrans not installed. Language switching disabled.`, run step 1 and restart the server.
+- For production workloads or heavy translation needs, consider replacing `googletrans` with an official translation API (e.g., Google Cloud Translation) and update `translator.py` accordingly.
+
+Developer tips:
+
+- All translation keys are defined in `translator.py`. To adjust UI wording or improve translations, edit those mappings.
+- If you integrate a paid Translation API, add configuration to `.env` and update `translator.py` to read credentials from environment variables.
+
 
 ## 🎨 Customization
 
