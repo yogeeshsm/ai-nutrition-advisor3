@@ -1,14 +1,14 @@
 {% extends "base.html" %}
 
-{% block title %}AI Nutrition Chatbot - AI Nutrition Advisor{% endblock %}
+{% block title %}{{ t('ai_chatbot') }} - {{ t('app_title') }}{% endblock %}
 
 {% block content %}
 <div class="text-center mb-5">
     <h1 class="display-4 fw-bold" style="color: white;">
-        <i class="fas fa-robot"></i> AI Nutrition Chatbot
+        <i class="fas fa-robot"></i> {{ t('ai_chatbot') }}
     </h1>
     <p class="lead" style="color: white; opacity: 0.9;">
-        Get Personalized Nutrition Advice Powered by AI
+        {{ t('welcome') }} — {{ t('ai_chatbot') }}
     </p>
 </div>
 
@@ -19,10 +19,10 @@
             <div class="card-header">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <i class="fas fa-comments"></i> Chat with Nutrition Expert
+                        <i class="fas fa-comments"></i> {{ t('ai_chatbot') }}
                     </div>
                     <button class="btn btn-sm btn-outline-secondary" onclick="clearChat()">
-                        <i class="fas fa-trash"></i> Clear Chat
+                        <i class="fas fa-trash"></i> {{ t('clear_chat') }}
                     </button>
                 </div>
             </div>
@@ -35,16 +35,16 @@
                         <i class="fas fa-robot"></i>
                     </div>
                     <div class="message-content">
-                        <strong>AI Nutrition Expert</strong>
-                        <p>Hello! I'm your AI nutrition assistant. I can help you with:</p>
+                        <strong>{{ t('ai_chatbot') }}</strong>
+                        <p>{{ t('welcome') }}! {{ t('app_title') }} {{ t('meal_planner') }} {{ t('ai_chatbot') }}.</p>
                         <ul>
-                            <li>Meal planning advice for children</li>
-                            <li>Ingredient substitutions</li>
-                            <li>Nutritional questions</li>
-                            <li>Feeding challenges (picky eaters, allergies)</li>
-                            <li>Budget-friendly meal suggestions</li>
+                            <li>{{ t('meal_planner') }}</li>
+                            <li>{{ t('ingredients') }}</li>
+                            <li>{{ t('nutrition_score') }}</li>
+                            <li>{{ t('allergies') }}</li>
+                            <li>{{ t('recommended') }}</li>
                         </ul>
-                        <p>How can I help you today?</p>
+                        <p>{{ t('how_can_i_help') if 'how_can_i_help' in languages else 'How can I help you today?' }}</p>
                     </div>
                 </div>
             </div>
@@ -55,29 +55,29 @@
                     <input type="text" 
                            id="userMessage" 
                            class="form-control" 
-                           placeholder="Ask me anything about nutrition..." 
+                           placeholder="{{ t('search') }}..." 
                            required
                            autocomplete="off">
                     <button type="submit" class="btn btn-primary" id="sendBtn">
-                        <i class="fas fa-paper-plane"></i> Send
+                        <i class="fas fa-paper-plane"></i> {{ t('submit') }}
                     </button>
                 </form>
                 
                 <!-- Quick Questions -->
                 <div class="mt-3">
-                    <small class="text-muted">Quick questions:</small>
+                    <small class="text-muted">{{ t('quick_questions') if 'quick_questions' in languages else 'Quick questions:' }}</small>
                     <div class="d-flex flex-wrap gap-2 mt-1">
                         <button class="btn btn-sm btn-outline-primary" onclick="askQuestion('What are good protein sources for vegetarian children?')">
-                            Protein sources
+                            {{ t('protein') }} sources
                         </button>
                         <button class="btn btn-sm btn-outline-primary" onclick="askQuestion('My child refuses vegetables. What should I do?')">
-                            Picky eater
+                            {{ t('allergies') }} / Picky eater
                         </button>
                         <button class="btn btn-sm btn-outline-primary" onclick="askQuestion('How to increase iron in diet?')">
-                            Iron-rich foods
+                            {{ t('iron') }}-rich foods
                         </button>
                         <button class="btn btn-sm btn-outline-primary" onclick="askQuestion('Budget-friendly meal ideas?')">
-                            Budget meals
+                            {{ t('recommended') }}
                         </button>
                     </div>
                 </div>
