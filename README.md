@@ -508,7 +508,7 @@ This tool helps:
 
 ---
 
-**Made with ❤️ for India's children**
+**Made with ❤️ for Karnataka children**
 
 **Version**: 1.0.0  
 **Last Updated**: October 2025
