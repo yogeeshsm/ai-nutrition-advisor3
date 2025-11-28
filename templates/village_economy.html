@@ -1,0 +1,546 @@
+{% extends "base.html" %}
+
+{% block title %}Village Nutrition Economy - AI Nutrition Advisor{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="display-4">
+                <i class="fas fa-chart-line text-success"></i> Village Nutrition Economy Analyzer
+            </h1>
+            <p class="lead">Track local food ecosystem, pricing trends, and nutrition economics</p>
+        </div>
+    </div>
+
+    <!-- Village Selector -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <label class="form-label"><i class="fas fa-map-marker-alt"></i> Select Village</label>
+                    <select id="villageSelect" class="form-select" onchange="loadVillageData()">
+                        <option value="">All Villages</option>
+                        <option value="Hubballi">Hubballi</option>
+                        <option value="Dharwad">Dharwad</option>
+                        <option value="Belgaum">Belgaum</option>
+                        <option value="Mysore">Mysore</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="card bg-gradient" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <div class="card-body text-white">
+                    <h3><i class="fas fa-leaf"></i> Nutrition Economy Score</h3>
+                    <h1 id="economyScore">--</h1>
+                    <small id="economyDetails">Loading...</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Key Metrics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="metric-card text-center">
+                <i class="fas fa-rupee-sign fa-2x text-success mb-2"></i>
+                <h4 id="avgFoodSpend">₹0</h4>
+                <small>Avg Monthly Food Spend</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card text-center">
+                <i class="fas fa-chart-pie fa-2x text-warning mb-2"></i>
+                <h4 id="junkPercentage">0%</h4>
+                <small>Junk Food Spending</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card text-center">
+                <i class="fas fa-users fa-2x text-info mb-2"></i>
+                <h4 id="familiesTracked">0</h4>
+                <small>Families Tracked</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card text-center">
+                <i class="fas fa-seedling fa-2x text-primary mb-2"></i>
+                <h4 id="localCropsCount">0</h4>
+                <small>Local Crops Available</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Tabs -->
+    <ul class="nav nav-pills mb-4" id="economyTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="cheapest-tab" data-bs-toggle="pill" data-bs-target="#cheapest" type="button">
+                <i class="fas fa-tags"></i> Cheapest Foods
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="local-tab" data-bs-toggle="pill" data-bs-target="#local" type="button">
+                <i class="fas fa-tractor"></i> Local Crops
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="spending-tab" data-bs-toggle="pill" data-bs-target="#spending" type="button">
+                <i class="fas fa-shopping-cart"></i> Spending Analysis
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="education-tab" data-bs-toggle="pill" data-bs-target="#education" type="button">
+                <i class="fas fa-graduation-cap"></i> Education
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="recommendations-tab" data-bs-toggle="pill" data-bs-target="#recommendations" type="button">
+                <i class="fas fa-lightbulb"></i> Recommendations
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="economyTabContent">
+        <!-- Cheapest Foods Tab -->
+        <div class="tab-pane fade show active" id="cheapest" role="tabpanel">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-tags text-success"></i> Most Cost-Effective Nutritious Foods This Month</h5>
+                    <small class="text-muted">Foods offering best nutrition per rupee spent</small>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="cheapestFoodsTable">
+                            <thead>
+                                <tr>
+                                    <th>Rank</th>
+                                    <th>Food Item</th>
+                                    <th>Category</th>
+                                    <th>Price (₹/kg)</th>
+                                    <th>Protein (g/100g)</th>
+                                    <th>Calories</th>
+                                    <th>Nutrition/₹ Score</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cheapestFoodsBody">
+                                <tr><td colspan="7" class="text-center">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <canvas id="priceComparisonChart" height="80"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Local Crops Tab -->
+        <div class="tab-pane fade" id="local" role="tabpanel">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-tractor text-primary"></i> Best Local Crops Available Now</h5>
+                    <small class="text-muted">Seasonal crops with high nutrition scores</small>
+                </div>
+                <div class="card-body">
+                    <div id="localCropsGrid" class="row">
+                        <div class="col-12 text-center">Loading...</div>
+                    </div>
+                    <canvas id="seasonalChart" height="80" class="mt-4"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Spending Analysis Tab -->
+        <div class="tab-pane fade" id="spending" role="tabpanel">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-chart-pie text-warning"></i> Food Spending Breakdown</h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="spendingPieChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-chart-line text-danger"></i> Spending Trends</h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="spendingTrendChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-exclamation-triangle text-warning"></i> Families Spending High on Junk Food</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-striped" id="junkSpendingTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Village</th>
+                                            <th>Month</th>
+                                            <th>Total Families</th>
+                                            <th>Nutritious Food</th>
+                                            <th>Junk Food</th>
+                                            <th>Junk %</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="junkSpendingBody">
+                                        <tr><td colspan="7" class="text-center">Loading...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Education Tab -->
+        <div class="tab-pane fade" id="education" role="tabpanel">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-graduation-cap text-info"></i> Nutrition Education Sessions</h5>
+                    <button class="btn btn-sm btn-primary float-end" onclick="showAddSessionModal()">
+                        <i class="fas fa-plus"></i> Add Session
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="educationSessions">
+                        <p class="text-center">Loading...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recommendations Tab -->
+        <div class="tab-pane fade" id="recommendations" role="tabpanel">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-lightbulb text-warning"></i> Cost-Effective Nutrition Recommendations</h5>
+                    <small class="text-muted">For ASHA workers and families</small>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-star text-success"></i> Best Buys This Month</h6>
+                            <div id="bestBuysRecommendations" class="list-group">
+                                <p class="text-muted">Loading...</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-seedling text-primary"></i> Seasonal Local Foods</h6>
+                            <div id="seasonalRecommendations" class="list-group">
+                                <p class="text-muted">Loading...</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="alert alert-info">
+                                <h6><i class="fas fa-info-circle"></i> Education Points for ASHA Workers:</h6>
+                                <ul id="educationPoints">
+                                    <li>Loading...</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.metric-card {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    transition: transform 0.3s;
+}
+
+.metric-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+}
+
+.nav-pills .nav-link {
+    color: #495057;
+    border-radius: 25px;
+    margin-right: 10px;
+}
+
+.nav-pills .nav-link.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.crop-card {
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 15px;
+    transition: all 0.3s;
+}
+
+.crop-card:hover {
+    border-color: #667eea;
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+}
+
+.nutrition-badge {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 0.85em;
+    font-weight: bold;
+}
+
+.score-high { background: #28a745; color: white; }
+.score-medium { background: #ffc107; color: #000; }
+.score-low { background: #dc3545; color: white; }
+</style>
+
+<script>
+let currentVillage = '';
+let charts = {};
+
+function loadVillageData() {
+    currentVillage = document.getElementById('villageSelect').value;
+    
+    // Load all data
+    loadEconomyScore();
+    loadCheapestFoods();
+    loadLocalCrops();
+    loadSpendingAnalysis();
+    loadEducationSessions();
+    loadRecommendations();
+}
+
+function loadEconomyScore() {
+    fetch(`/api/economy-score?village=${currentVillage}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.score !== null) {
+                document.getElementById('economyScore').textContent = data.score + '/100';
+                document.getElementById('economyDetails').textContent = 
+                    `${data.junk_percentage}% junk food spending | ${data.total_families_tracked} families tracked`;
+                document.getElementById('avgFoodSpend').textContent = '₹' + data.avg_monthly_spend;
+                document.getElementById('junkPercentage').textContent = data.junk_percentage + '%';
+                document.getElementById('familiesTracked').textContent = data.total_families_tracked;
+            }
+        });
+}
+
+function loadCheapestFoods() {
+    fetch(`/api/cheapest-foods?village=${currentVillage}`)
+        .then(response => response.json())
+        .then(data => {
+            const tbody = document.getElementById('cheapestFoodsBody');
+            tbody.innerHTML = '';
+            
+            data.forEach((item, index) => {
+                const row = `
+                    <tr>
+                        <td><strong>${index + 1}</strong></td>
+                        <td><strong>${item.ingredient_name}</strong></td>
+                        <td><span class="badge bg-info">${item.category}</span></td>
+                        <td>₹${item.avg_price.toFixed(2)}</td>
+                        <td>${item.protein_per_100g.toFixed(1)}g</td>
+                        <td>${item.calories_per_100g.toFixed(0)} kcal</td>
+                        <td><span class="nutrition-badge score-high">${item.nutrition_per_rupee.toFixed(2)}</span></td>
+                    </tr>
+                `;
+                tbody.innerHTML += row;
+            });
+            
+            // Update chart
+            updatePriceComparisonChart(data.slice(0, 10));
+        });
+}
+
+function loadLocalCrops() {
+    fetch(`/api/local-crops?village=${currentVillage}`)
+        .then(response => response.json())
+        .then(data => {
+            const grid = document.getElementById('localCropsGrid');
+            grid.innerHTML = '';
+            
+            document.getElementById('localCropsCount').textContent = data.length;
+            
+            data.forEach(crop => {
+                const scoreClass = crop.nutrition_score >= 80 ? 'score-high' : 
+                                 crop.nutrition_score >= 60 ? 'score-medium' : 'score-low';
+                
+                const card = `
+                    <div class="col-md-4">
+                        <div class="crop-card">
+                            <h5><i class="fas fa-leaf text-success"></i> ${crop.crop_name}</h5>
+                            <p class="mb-2">
+                                <span class="badge bg-primary">${crop.season}</span>
+                                <span class="nutrition-badge ${scoreClass}">Score: ${crop.nutrition_score}</span>
+                            </p>
+                            <p class="mb-1"><strong>₹${crop.avg_price_per_kg}/kg</strong></p>
+                            <small class="text-muted">
+                                Protein: ${crop.protein_per_100g}g | Iron: ${crop.iron_per_100g}mg | Calcium: ${crop.calcium_per_100g}mg
+                            </small>
+                        </div>
+                    </div>
+                `;
+                grid.innerHTML += card;
+            });
+        });
+}
+
+function loadSpendingAnalysis() {
+    fetch(`/api/spending-analysis?village=${currentVillage}`)
+        .then(response => response.json())
+        .then(data => {
+            updateSpendingCharts(data);
+            updateJunkSpendingTable(data);
+        });
+}
+
+function loadEducationSessions() {
+    fetch(`/api/education-sessions?village=${currentVillage}`)
+        .then(response => response.json())
+        .then(data => {
+            const container = document.getElementById('educationSessions');
+            container.innerHTML = '';
+            
+            data.forEach(session => {
+                const card = `
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h6><i class="fas fa-calendar"></i> ${session.session_date} - ${session.topic}</h6>
+                            <p class="mb-1"><strong>ASHA Worker:</strong> ${session.asha_worker}</p>
+                            <p class="mb-1"><strong>Attendees:</strong> ${session.attendees} families</p>
+                            <p class="mb-1"><strong>Key Learnings:</strong> ${session.key_learnings}</p>
+                            ${session.follow_up_needed ? '<span class="badge bg-warning">Follow-up Needed</span>' : ''}
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += card;
+            });
+        });
+}
+
+function loadRecommendations() {
+    fetch(`/api/economy-recommendations?village=${currentVillage}`)
+        .then(response => response.json())
+        .then(data => {
+            // Best Buys
+            const bestBuys = document.getElementById('bestBuysRecommendations');
+            bestBuys.innerHTML = '';
+            data.filter(r => r.type === 'cost_effective').forEach(rec => {
+                bestBuys.innerHTML += `
+                    <div class="list-group-item">
+                        <h6 class="mb-1">${rec.food}</h6>
+                        <p class="mb-1 text-muted">${rec.reason}</p>
+                        <small class="text-success"><strong>₹${rec.price}/kg</strong></small>
+                    </div>
+                `;
+            });
+            
+            // Seasonal
+            const seasonal = document.getElementById('seasonalRecommendations');
+            seasonal.innerHTML = '';
+            data.filter(r => r.type === 'seasonal_local').forEach(rec => {
+                seasonal.innerHTML += `
+                    <div class="list-group-item">
+                        <h6 class="mb-1">${rec.food}</h6>
+                        <p class="mb-1 text-muted">${rec.reason}</p>
+                        <small class="text-primary"><strong>₹${rec.price}/kg</strong></small>
+                    </div>
+                `;
+            });
+            
+            // Education points
+            updateEducationPoints(data);
+        });
+}
+
+function updatePriceComparisonChart(data) {
+    const ctx = document.getElementById('priceComparisonChart').getContext('2d');
+    
+    if (charts.priceComparison) charts.priceComparison.destroy();
+    
+    charts.priceComparison = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: data.map(d => d.ingredient_name),
+            datasets: [{
+                label: 'Price (₹/kg)',
+                data: data.map(d => d.avg_price),
+                backgroundColor: 'rgba(102, 126, 234, 0.6)',
+                borderColor: 'rgba(102, 126, 234, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Price Comparison - Most Economical Foods'
+                }
+            }
+        }
+    });
+}
+
+function updateSpendingCharts(data) {
+    // Implementation for spending charts
+    console.log('Spending data:', data);
+}
+
+function updateJunkSpendingTable(data) {
+    const tbody = document.getElementById('junkSpendingBody');
+    tbody.innerHTML = '';
+    
+    data.forEach(row => {
+        const junkPct = row.junk_percentage || 0;
+        const alertClass = junkPct > 30 ? 'table-danger' : junkPct > 20 ? 'table-warning' : '';
+        
+        tbody.innerHTML += `
+            <tr class="${alertClass}">
+                <td>${row.village}</td>
+                <td>${row.month} ${row.year}</td>
+                <td>${row.families}</td>
+                <td>₹${row.total_nutritious.toFixed(0)}</td>
+                <td>₹${row.total_junk.toFixed(0)}</td>
+                <td><strong>${junkPct.toFixed(1)}%</strong></td>
+                <td>
+                    ${junkPct > 25 ? '<span class="badge bg-danger">Needs Education</span>' : 
+                                    '<span class="badge bg-success">Good</span>'}
+                </td>
+            </tr>
+        `;
+    });
+}
+
+function updateEducationPoints(recommendations) {
+    const points = document.getElementById('educationPoints');
+    points.innerHTML = `
+        <li>Prioritize locally grown seasonal foods to save 20-30% on food costs</li>
+        <li>Replace packaged snacks with nutritious alternatives like roasted groundnuts or seasonal fruits</li>
+        <li>Buy in bulk during harvest season and store properly to maximize savings</li>
+        <li>Focus on protein-rich foods like pulses and local millets for growing children</li>
+        <li>Educate families that nutrition value per rupee matters more than just price</li>
+    `;
+}
+
+// Load data on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadVillageData();
+});
+</script>
+{% endblock %}

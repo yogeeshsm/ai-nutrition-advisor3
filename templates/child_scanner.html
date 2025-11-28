@@ -1,0 +1,605 @@
+{% extends "base.html" %}
+
+{% block title %}Child QR Scanner - ASHA/Anganwadi Tool{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card bg-gradient" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                <div class="card-body text-white">
+                    <h1 class="mb-2">📱 Child Health QR Scanner</h1>
+                    <p class="mb-0">ASHA & Anganwadi Worker Tool - Scan QR codes to access child health records instantly</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Scanner Section -->
+        <div class="col-md-6">
+            <div class="card shadow-lg">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">📷 QR Code Scanner</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Scanner Input -->
+                    <div class="form-group">
+                        <label for="qrInput" class="form-label">Camera/Upload QR Code</label>
+                        <div id="scanner" style="width: 100%; height: 300px; background: #000; border-radius: 10px; margin-bottom: 15px; overflow: hidden;">
+                            <video id="video" style="width: 100%; height: 100%; object-fit: cover;"></video>
+                        </div>
+                        <input type="text" class="form-control form-control-lg" id="qrInput" placeholder="Or paste QR ID here...">
+                    </div>
+
+                    <!-- Camera Controls -->
+                    <div class="btn-group w-100 mb-3" role="group">
+                        <button class="btn btn-outline-primary" id="startCamera" onclick="startCamera()">
+                            <i class="fas fa-camera"></i> Start Camera
+                        </button>
+                        <button class="btn btn-outline-danger" id="stopCamera" onclick="stopCamera()" disabled>
+                            <i class="fas fa-stop"></i> Stop
+                        </button>
+                        <button class="btn btn-outline-secondary" onclick="uploadQRImage()">
+                            <i class="fas fa-upload"></i> Upload Image
+                        </button>
+                    </div>
+
+                    <!-- Manual QR ID Input -->
+                    <button class="btn btn-success w-100 btn-lg" onclick="scanQRManual()">
+                        <i class="fas fa-search"></i> Search QR ID
+                    </button>
+
+                    <!-- Alert Box -->
+                    <div id="scannerAlert" class="mt-3"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div class="col-md-6">
+            <div class="card shadow-lg">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">👶 Child Health Record</h5>
+                </div>
+                <div class="card-body">
+                    <div id="noResultBox" class="text-center text-muted py-5">
+                        <i class="fas fa-qrcode" style="font-size: 64px; opacity: 0.3;"></i>
+                        <p class="mt-3">Scan a QR code to view child health record</p>
+                    </div>
+
+                    <div id="resultBox" style="display:none;">
+                        <!-- Child Header -->
+                        <div class="alert alert-info mb-3">
+                            <h5 id="resultChildName" class="mb-0"></h5>
+                            <small id="resultCardNumber" class="text-muted"></small>
+                        </div>
+
+                        <!-- Scanned Time -->
+                        <div class="small text-muted mb-3">
+                            ✅ Scanned at: <span id="scannedTime"></span>
+                        </div>
+
+                        <!-- Child Information -->
+                        <div class="card mb-3 border-info">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0">👤 Personal Information</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <p><strong>DOB:</strong> <span id="resultDOB"></span></p>
+                                        <p><strong>Age:</strong> <span id="resultAge"></span></p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <p><strong>Gender:</strong> <span id="resultGender"></span></p>
+                                        <p><strong>Village:</strong> <span id="resultVillage"></span></p>
+                                    </div>
+                                </div>
+                                <p><strong>District:</strong> <span id="resultDistrict"></span></p>
+                            </div>
+                        </div>
+
+                        <!-- Vaccination Status -->
+                        <div class="card mb-3 border-primary">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0">💉 Vaccination Status</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <div class="card text-center bg-light">
+                                            <div class="card-body p-2">
+                                                <h5 id="resultVacCompleted" class="mb-0 text-success">0</h5>
+                                                <small>Completed</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="card text-center bg-light">
+                                            <div class="card-body p-2">
+                                                <h5 id="resultVacPending" class="mb-0 text-warning">0</h5>
+                                                <small>Pending</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="progress mb-3">
+                                    <div class="progress-bar bg-success" id="resultVacBar" style="width: 0%"></div>
+                                </div>
+                                <p><strong>Next Vaccine:</strong> <span id="resultNextVaccine" class="badge bg-warning"></span></p>
+                                <p><strong>Scheduled:</strong> <span id="resultNextVacDate" class="badge bg-info"></span></p>
+                                
+                                <!-- Vaccination List for ASHA Worker -->
+                                <div id="vaccinationListBox" style="display:none;">
+                                    <hr>
+                                    <h6 class="mt-2 mb-2">📋 All Vaccinations:</h6>
+                                    <div id="vaccinationList" class="small"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Nutrition Status -->
+                        <div class="card mb-3 border-success">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0">📏 Nutrition Levels</h6>
+                            </div>
+                            <div class="card-body">
+                                <p><strong>Weight:</strong> <span id="resultWeight"></span> kg</p>
+                                <p><strong>Height:</strong> <span id="resultHeight"></span> cm</p>
+                                <p><strong>MUAC:</strong> <span id="resultMUAC" class="badge bg-success">Normal</span></p>
+                                <p><strong>Nutrition Score:</strong> <span id="resultNutScore" class="badge bg-info">-/100</span></p>
+                                <p class="mb-0"><strong>Last Measured:</strong> <span id="resultNutDate" class="small text-muted"></span></p>
+                                
+                                <!-- ASHA Worker Update Section -->
+                                <hr class="my-3">
+                                <h6 class="mb-2">✏️ ASHA Update Nutrition</h6>
+                                <div class="form-group mb-2">
+                                    <label class="form-label small"><strong>New Weight (kg)</strong></label>
+                                    <input type="number" class="form-control form-control-sm" id="ashaNewWeight" step="0.1" placeholder="e.g., 14.5">
+                                </div>
+                                <div class="form-group mb-2">
+                                    <label class="form-label small"><strong>New Height (cm)</strong></label>
+                                    <input type="number" class="form-control form-control-sm" id="ashaNewHeight" step="0.1" placeholder="e.g., 98">
+                                </div>
+                                <button class="btn btn-sm btn-success w-100" onclick="ashaUpdateNutrition()">
+                                    <i class="fas fa-save"></i> Save Nutrition Update
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Emergency Contacts -->
+                        <div class="card mb-3 border-danger" id="emergencyBox" style="display:none;">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0">🚨 Emergency Contacts</h6>
+                            </div>
+                            <div class="card-body" id="emergencyContactsList"></div>
+                        </div>
+
+                        <!-- Family Health Risks -->
+                        <div class="card mb-3 border-warning" id="healthRisksBox" style="display:none;">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0">⚠️ Family Health Risks</h6>
+                            </div>
+                            <div class="card-body" id="healthRisksList"></div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="row mt-4">
+                            <div class="col-md-6">
+                                <button class="btn btn-primary w-100" onclick="printScanResult()">
+                                    <i class="fas fa-print"></i> Print
+                                </button>
+                            </div>
+                            <div class="col-md-6">
+                                <button class="btn btn-secondary w-100" onclick="clearScan()">
+                                    <i class="fas fa-times"></i> Clear
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Instructions -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h5>📖 How to Use</h5>
+                    <ol>
+                        <li>Click <strong>"Start Camera"</strong> to enable your phone/tablet camera</li>
+                        <li>Point the camera at the child's QR code</li>
+                        <li>Once scanned, the child's complete health record will appear on the right</li>
+                        <li>You can print or save the record for your records</li>
+                        <li>All data is instantly available - no internet required after first sync</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- QR Scanner Library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.js"></script>
+
+<script>
+let video = null;
+let canvasElement = null;
+let canvas = null;
+let scanning = false;
+
+document.addEventListener('DOMContentLoaded', function() {
+    setupCanvas();
+});
+
+function setupCanvas() {
+    video = document.getElementById('video');
+    canvasElement = document.createElement('canvas');
+    canvasElement.style.display = 'none';
+    document.body.appendChild(canvasElement);
+    canvas = canvasElement.getContext('2d');
+}
+
+function startCamera() {
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        navigator.mediaDevices.getUserMedia({ 
+            video: { facingMode: 'environment' } 
+        })
+        .then(function(stream) {
+            video.srcObject = stream;
+            video.play();
+            scanning = true;
+            document.getElementById('startCamera').disabled = true;
+            document.getElementById('stopCamera').disabled = false;
+            scanQRCode();
+        })
+        .catch(function(err) {
+            showScannerAlert('Camera access denied. Try uploading an image instead.', 'danger');
+        });
+    } else {
+        showScannerAlert('Camera not supported on this device', 'danger');
+    }
+}
+
+function stopCamera() {
+    if (video && video.srcObject) {
+        video.srcObject.getTracks().forEach(track => track.stop());
+        scanning = false;
+        document.getElementById('startCamera').disabled = false;
+        document.getElementById('stopCamera').disabled = true;
+    }
+}
+
+function scanQRCode() {
+    if (scanning) {
+        canvasElement.width = video.videoWidth;
+        canvasElement.height = video.videoHeight;
+        canvas.drawImage(video, 0, 0, canvasElement.width, canvasElement.height);
+        
+        const imageData = canvas.getImageData(0, 0, canvasElement.width, canvasElement.height);
+        const code = jsQR(imageData.data, imageData.width, imageData.height);
+        
+        if (code) {
+            console.log('QR Code detected:', code.data);
+            try {
+                const data = JSON.parse(code.data);
+                if (data.qr_code_id) {
+                    displayChildRecord(data);
+                    stopCamera();
+                }
+            } catch (e) {
+                // Not a child identity QR code, continue scanning
+            }
+        }
+        
+        requestAnimationFrame(scanQRCode);
+    }
+}
+
+function scanQRManual() {
+    const qrId = document.getElementById('qrInput').value.trim();
+    
+    if (!qrId) {
+        showScannerAlert('Please enter a QR ID', 'warning');
+        return;
+    }
+    
+    fetch(`/api/child-identity/scan/${qrId}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                displayChildRecord(data.child_data);
+                showScannerAlert('✅ QR code scanned successfully', 'success');
+            } else {
+                showScannerAlert('❌ ' + data.message, 'danger');
+            }
+        })
+        .catch(err => {
+            console.error('Error:', err);
+            showScannerAlert('Error scanning QR code', 'danger');
+        });
+}
+
+function displayChildRecord(childData) {
+    // Display basic info
+    document.getElementById('resultChildName').textContent = childData.name;
+    document.getElementById('resultCardNumber').textContent = 'Card: ' + childData.card_number;
+    document.getElementById('scannedTime').textContent = new Date().toLocaleTimeString();
+    document.getElementById('resultDOB').textContent = childData.date_of_birth || 'N/A';
+    document.getElementById('resultGender').textContent = childData.gender || 'N/A';
+    document.getElementById('resultVillage').textContent = childData.location.village || 'N/A';
+    document.getElementById('resultDistrict').textContent = childData.location.district || 'N/A';
+    
+    // Store child ID for ASHA updates
+    window.currentChildId = childData.child_id;
+    
+    // Vaccination info
+    const vac = childData.vaccination;
+    document.getElementById('resultVacCompleted').textContent = vac.completed_vaccinations;
+    document.getElementById('resultVacPending').textContent = vac.pending_vaccinations;
+    document.getElementById('resultVacBar').style.width = vac.completion_percentage + '%';
+    document.getElementById('resultNextVaccine').textContent = vac.next_vaccine_name;
+    document.getElementById('resultNextVacDate').textContent = vac.next_vaccine_date;
+    
+    // Nutrition info
+    const nut = childData.nutrition;
+    document.getElementById('resultWeight').textContent = nut.current_weight_kg;
+    document.getElementById('resultHeight').textContent = nut.current_height_cm;
+    document.getElementById('resultMUAC').textContent = nut.muac || 'Normal';
+    document.getElementById('resultNutDate').textContent = nut.last_measured;
+    
+    // Set MUAC badge color based on status
+    const muacBadge = document.getElementById('resultMUAC');
+    if (nut.muac === 'Normal') {
+        muacBadge.className = 'badge bg-success';
+    } else if (nut.muac === 'Mild Wasting') {
+        muacBadge.className = 'badge bg-warning';
+    } else {
+        muacBadge.className = 'badge bg-danger';
+    }
+    
+    // Display nutrition score
+    if (nut.nutrition_score) {
+        document.getElementById('resultNutScore').textContent = nut.nutrition_score + '/100';
+        document.getElementById('resultNutScore').className = 'badge ' + 
+            (nut.nutrition_score >= 75 ? 'bg-success' : nut.nutrition_score >= 50 ? 'bg-warning' : 'bg-danger');
+    } else {
+        // Fetch nutrition score from API
+        fetch(`/api/asha/nutrition-score/${childData.child_id}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('resultNutScore').textContent = data.nutrition_score + '/100';
+                    document.getElementById('resultNutScore').className = 'badge ' + 
+                        (data.nutrition_score >= 75 ? 'bg-success' : data.nutrition_score >= 50 ? 'bg-warning' : 'bg-danger');
+                }
+            });
+    }
+    
+    // Show all vaccinations
+    fetch(`/api/asha/all-vaccinations/${childData.child_id}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.success && data.vaccinations.length > 0) {
+                const vacList = document.getElementById('vaccinationList');
+                vacList.innerHTML = '';
+                
+                data.vaccinations.forEach(vac => {
+                    const status = vac.status === 'Completed' ? '✔' : '❗';
+                    const statusClass = vac.status === 'Completed' ? 'text-success' : 'text-warning';
+                    
+                    vacList.innerHTML += `
+                        <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                            <span><span class="${statusClass}">${status}</span> ${vac.vaccine_name}</span>
+                            ${vac.status === 'Pending' ? `
+                                <button class="btn btn-xs btn-sm btn-success" onclick="ashaMarkVaccination('${vac.vaccine_name}')">
+                                    Mark Done
+                                </button>
+                            ` : ''}
+                        </div>
+                    `;
+                });
+                
+                document.getElementById('vaccinationListBox').style.display = 'block';
+            }
+        });
+    
+    // Emergency Contacts
+    if (childData.emergency_contacts && childData.emergency_contacts.length > 0) {
+        const contactsList = document.getElementById('emergencyContactsList');
+        contactsList.innerHTML = '';
+        childData.emergency_contacts.forEach((contact, idx) => {
+            contactsList.innerHTML += `
+                <div class="alert alert-danger p-2 mb-2">
+                    <strong>📞 ${contact.name}</strong><br>
+                    Phone: <a href="tel:${contact.phone}">${contact.phone}</a><br>
+                    Relation: ${contact.relationship || 'N/A'}
+                </div>
+            `;
+        });
+        document.getElementById('emergencyBox').style.display = 'block';
+    }
+    
+    // Family Health Risks
+    if (childData.family_health_risks && childData.family_health_risks.length > 0) {
+        const risksList = document.getElementById('healthRisksList');
+        risksList.innerHTML = '';
+        childData.family_health_risks.forEach((risk, idx) => {
+            const severityColor = risk.severity === 'Critical' ? 'danger' : 
+                                 risk.severity === 'High' ? 'warning' : 'info';
+            risksList.innerHTML += `
+                <div class="alert alert-${severityColor} p-2 mb-2">
+                    <strong>⚠️ ${risk.condition}</strong><br>
+                    Severity: <span class="badge bg-${severityColor}">${risk.severity}</span><br>
+                    Precautions: ${risk.precautions || 'N/A'}
+                </div>
+            `;
+        });
+        document.getElementById('healthRisksBox').style.display = 'block';
+    }
+    
+    // Show result box
+    document.getElementById('noResultBox').style.display = 'none';
+    document.getElementById('resultBox').style.display = 'block';
+}
+
+function clearScan() {
+    document.getElementById('qrInput').value = '';
+    document.getElementById('noResultBox').style.display = 'block';
+    document.getElementById('resultBox').style.display = 'none';
+}
+
+function printScanResult() {
+    const printWindow = window.open('', '', 'height=600,width=800');
+    printWindow.document.write(document.getElementById('resultBox').innerHTML);
+    printWindow.document.close();
+    printWindow.print();
+}
+
+function uploadQRImage() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = function(e) {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            const img = new Image();
+            img.onload = function() {
+                canvasElement.width = img.width;
+                canvasElement.height = img.height;
+                canvas.drawImage(img, 0, 0);
+                
+                const imageData = canvas.getImageData(0, 0, canvasElement.width, canvasElement.height);
+                const code = jsQR(imageData.data, imageData.width, imageData.height);
+                
+                if (code) {
+                    try {
+                        const data = JSON.parse(code.data);
+                        if (data.qr_code_id) {
+                            displayChildRecord(data);
+                            showScannerAlert('✅ QR code detected in image', 'success');
+                        }
+                    } catch (e) {
+                        showScannerAlert('❌ Invalid QR code format', 'danger');
+                    }
+                } else {
+                    showScannerAlert('❌ No QR code detected in image', 'danger');
+                }
+            };
+            img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+    };
+    input.click();
+}
+
+function showScannerAlert(message, type = 'info') {
+    const alertBox = document.getElementById('scannerAlert');
+    alertBox.innerHTML = `<div class="alert alert-${type} alert-dismissible fade show" role="alert">
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>`;
+}
+
+// ===== ASHA WORKER UPDATE FUNCTIONS =====
+
+function ashaMarkVaccination(vaccineName) {
+    if (!window.currentChildId) {
+        showScannerAlert('Child ID not found', 'danger');
+        return;
+    }
+    
+    fetch(`/api/asha/mark-vaccination/${window.currentChildId}/${encodeURIComponent(vaccineName)}`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({notes: 'Marked by ASHA worker'})
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            showScannerAlert(`✅ ${vaccineName} marked as completed!`, 'success');
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showScannerAlert(`❌ Error: ${data.message}`, 'danger');
+        }
+    })
+    .catch(err => {
+        console.error('Error:', err);
+        showScannerAlert('Error marking vaccination', 'danger');
+    });
+}
+
+function ashaUpdateNutrition() {
+    if (!window.currentChildId) {
+        showScannerAlert('Child ID not found', 'danger');
+        return;
+    }
+    
+    const weight = document.getElementById('ashaNewWeight').value;
+    const height = document.getElementById('ashaNewHeight').value;
+    
+    if (!weight || !height) {
+        showScannerAlert('Please enter both weight and height', 'warning');
+        return;
+    }
+    
+    fetch(`/api/asha/update-nutrition/${window.currentChildId}`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            weight_kg: parseFloat(weight),
+            height_cm: parseFloat(height),
+            notes: 'Updated by ASHA worker'
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            showScannerAlert(`✅ Nutrition updated: ${weight}kg, ${height}cm!`, 'success');
+            document.getElementById('ashaNewWeight').value = '';
+            document.getElementById('ashaNewHeight').value = '';
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showScannerAlert(`❌ Error: ${data.message}`, 'danger');
+        }
+    })
+    .catch(err => {
+        console.error('Error:', err);
+        showScannerAlert('Error updating nutrition', 'danger');
+    });
+}
+
+</script>
+
+<style>
+#scanner {
+    position: relative;
+    overflow: hidden;
+}
+
+video {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.card {
+    border-radius: 10px;
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+}
+
+.badge {
+    padding: 5px 10px;
+    font-size: 12px;
+}
+</style>
+{% endblock %}

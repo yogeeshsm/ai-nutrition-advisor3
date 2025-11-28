@@ -1002,6 +1002,21 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/village-economy' %}active{% endif %}" href="/village-economy">
+                            <i class="fas fa-chart-line"></i> Village Economy
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/child-identity-card' %}active{% endif %}" href="/child-identity-card">
+                            <i class="fas fa-qrcode"></i> Child ID Card
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/child-identity-scanner' %}active{% endif %}" href="/child-identity-scanner">
+                            <i class="fas fa-mobile-alt"></i> QR Scanner
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link {% if request.path == '/nutrition-lookup' %}active{% endif %}" href="/nutrition-lookup">
                             <i class="fas fa-database"></i> USDA Lookup
                         </a>
@@ -1114,7 +1129,8 @@
                 Made with love for Karnataka Children's
             </p>
             <p class="mb-0" style="opacity: 0.7;">
-                AI Nutrition Advisor v1.0 | October 2025
+                AI Nutrition Advisor v2.0 | November 2025
+                <span class="badge bg-success ms-2">NEW: Mobile Child ID Card</span>
             </p>
         </div>
     </footer>

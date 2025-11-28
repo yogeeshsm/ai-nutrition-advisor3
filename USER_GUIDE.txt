@@ -1,0 +1,273 @@
+🎫 MOBILE CHILD ID CARD - USER GUIDE
+====================================
+
+📱 HOW TO USE THIS FEATURE
+
+═══════════════════════════════════════════════════════════════════
+
+STEP 1: START THE SERVER
+═══════════════════════════════════════════════════════════════════
+1. Open your browser
+2. Go to: http://127.0.0.1:5000
+3. Server should be running automatically
+
+
+═══════════════════════════════════════════════════════════════════
+STEP 2: CREATE CHILD ID CARD (For Parents/Admin)
+═══════════════════════════════════════════════════════════════════
+
+🌐 Open: http://127.0.0.1:5000/child-identity-card
+
+1️⃣ You'll see dropdown with all children:
+   • Lakshmi (5y)
+   • Aarav Singh (2y)
+   • Anaya Patel (2y)
+   • Arjun Kumar (2y)
+   • Diya Sharma (2y)
+   • Rohan Gupta (2y)
+
+2️⃣ Select "Lakshmi (5y)" from dropdown
+
+3️⃣ Click big purple "Generate QR Card" button
+
+4️⃣ System creates:
+   ✅ Unique QR code (example: CHILD_982374)
+   ✅ Digital ID card with all data
+   ✅ QR image to save/print
+
+5️⃣ Save the QR code:
+   • Screenshot on phone
+   • Print physical copy
+   • Share via WhatsApp/Email
+
+
+═══════════════════════════════════════════════════════════════════
+STEP 3: SCAN QR CODE (For ASHA Workers)
+═══════════════════════════════════════════════════════════════════
+
+🌐 Open: http://127.0.0.1:5000/child-identity-scanner
+
+📱 THREE WAYS TO SCAN:
+
+   🅰️ Camera Scan (Best method):
+      • Click "Start Camera"
+      • Point at parent's QR code
+      • Auto-loads child data
+
+   🅱️ Manual Search:
+      • Type ID: CHILD_982374
+      • Click "Search by QR ID"
+
+   🅲 Upload Image:
+      • Click "Upload QR Image"
+      • Select QR photo from phone
+
+📋 WHAT YOU'LL SEE:
+
+   Child Info:
+   ├─ Name: Lakshmi
+   ├─ Age: 5 years  
+   └─ ID: CHILD_982374
+
+   💉 Vaccination Status (7/10 completed):
+   ├─ ✔ BCG (Done)
+   ├─ ✔ OPV 1, 2, 3 (Done)
+   ├─ ✔ DPT 1, 2, 3 (Done)
+   ├─ ❗ MR - "Mark Done" button
+   ├─ ❗ JE - "Mark Done" button
+   └─ ❗ Booster DPT - "Mark Done" button
+
+   📏 Nutrition Levels:
+   ├─ Weight: 14.2 kg
+   ├─ Height: 97 cm
+   ├─ MUAC: Normal
+   └─ Score: 88/100 🟢
+
+   ⚠️ Family Health Risks:
+   ├─ Mother has anemia (High)
+   └─ Father has hypertension (Medium)
+
+   📞 Emergency Contacts:
+   ├─ Ravi (Father): 9876543210 ☎️
+   ├─ Sunita (Mother): 9876543211 ☎️
+   └─ Aunt (Rajini): 9829345234 ☎️
+
+
+═══════════════════════════════════════════════════════════════════
+STEP 4: MARK VACCINATION AS DONE (ASHA Worker)
+═══════════════════════════════════════════════════════════════════
+
+1️⃣ ASHA sees: ❗ MR (Measles-Rubella) - Pending
+
+2️⃣ After giving vaccine, click green "Mark Done" button
+
+3️⃣ System automatically:
+   ✅ Updates database
+   ✅ Changes status to "Completed"
+   ✅ Regenerates QR code
+   ✅ Shows success message ✨
+
+4️⃣ Page refreshes → Now shows:
+   ✔ MR (Completed) ✅
+   Progress: 8/10 vaccinations (80%)
+
+
+═══════════════════════════════════════════════════════════════════
+STEP 5: UPDATE NUTRITION (ASHA Worker)
+═══════════════════════════════════════════════════════════════════
+
+1️⃣ Scroll to "ASHA Update Nutrition" section
+
+2️⃣ Measure child and enter:
+   • New Weight: 14.5 kg
+   • New Height: 98 cm
+
+3️⃣ Click green "Save Nutrition Update" button
+
+4️⃣ System automatically:
+   ✅ Saves measurement to database
+   ✅ Recalculates nutrition score
+   ✅ Updates QR code data
+   ✅ Shows success message
+
+5️⃣ Updated display shows:
+   Weight: 14.5 kg (↑ from 14.2)
+   Height: 98 cm (↑ from 97)
+   Score: 90/100 (↑ from 88) 🟢
+
+
+═══════════════════════════════════════════════════════════════════
+STEP 6: PARENT SEES UPDATED CARD
+═══════════════════════════════════════════════════════════════════
+
+1️⃣ Parent opens: http://127.0.0.1:5000/child-identity-card
+
+2️⃣ Selects "Lakshmi" again
+
+3️⃣ Clicks "Generate QR Card"
+
+4️⃣ Card shows UPDATED data:
+   ✅ MR vaccine marked completed ✔
+   ✅ Weight: 14.5 kg (new)
+   ✅ Height: 98 cm (new)
+   ✅ Score: 90/100 (improved!)
+
+5️⃣ Parent can:
+   • Save new QR
+   • Print updated card
+   • Share with family
+
+
+═══════════════════════════════════════════════════════════════════
+🎯 REAL-WORLD EXAMPLES
+═══════════════════════════════════════════════════════════════════
+
+📍 Scenario 1: Anganwadi Visit
+   • Mother shows QR from phone
+   • Worker scans in 2 seconds
+   • Complete history visible
+   • Worker gives pending vaccine
+   • Marks done → Card updates instantly
+
+📍 Scenario 2: ASHA Home Visit
+   • ASHA scans QR at home
+   • Checks all 10 vaccinations
+   • Sees 3 pending (MR, JE, Booster)
+   • Measures child (14.5kg, 98cm)
+   • Updates system on phone
+
+📍 Scenario 3: Hospital Emergency
+   • Father shows QR to doctor
+   • Doctor sees:
+     - Vaccination history
+     - Current health
+     - Family risks (Mother's anemia!)
+     - Emergency contacts
+   • Quick informed treatment
+
+📍 Scenario 4: School Admission
+   • School needs health records
+   • Mother shows QR
+   • Admin scans → Downloads all
+   • No physical documents needed
+
+
+═══════════════════════════════════════════════════════════════════
+🔑 QUICK ACCESS
+═══════════════════════════════════════════════════════════════════
+
+👨‍👩‍👧 Parents/Admin:
+   http://127.0.0.1:5000/child-identity-card
+
+👩‍⚕️ ASHA Workers:
+   http://127.0.0.1:5000/child-identity-scanner
+
+🏠 Home Page:
+   http://127.0.0.1:5000
+
+
+═══════════════════════════════════════════════════════════════════
+✨ KEY BENEFITS
+═══════════════════════════════════════════════════════════════════
+
+✅ Instant access - Scan in 2 seconds
+✅ No paperwork - All digital
+✅ Offline-capable - QR has all data
+✅ Real-time updates - ASHA → Parent sync
+✅ Emergency ready - Contacts + risks
+✅ Progress tracking - Scores & percentages
+✅ Works anywhere - Any smartphone
+✅ Multi-user - Parent, ASHA, Doctor, School
+✅ Secure - Unique QR per child
+✅ Complete history - Growth + vaccinations
+
+
+═══════════════════════════════════════════════════════════════════
+🛠️ TROUBLESHOOTING
+═══════════════════════════════════════════════════════════════════
+
+❌ Problem: Can't see children in dropdown
+✅ Solution: Run: python add_test_children.py
+
+❌ Problem: Camera not working
+✅ Solution: 
+   • Allow camera in browser settings
+   • Use "Manual Search" instead
+   • Or "Upload QR Image"
+
+❌ Problem: Updates not saving
+✅ Solution:
+   • Check server is running
+   • Refresh browser (F5)
+   • Clear browser cache
+
+❌ Problem: QR code not generating
+✅ Solution:
+   • Make sure child is selected
+   • Click button again
+   • Check browser console for errors
+
+
+═══════════════════════════════════════════════════════════════════
+📊 DATA INCLUDED IN QR CODE
+═══════════════════════════════════════════════════════════════════
+
+Each QR code contains:
+   ✓ Child ID (CHILD_982374)
+   ✓ Name, Age, Gender, Village
+   ✓ All 10 vaccinations (status & dates)
+   ✓ Current weight & height
+   ✓ Nutrition score
+   ✓ MUAC status
+   ✓ 4 emergency contacts
+   ✓ 2 family health risks
+   ✓ Last update timestamp
+
+Total: ~500 bytes (fits in QR code easily!)
+
+
+═══════════════════════════════════════════════════════════════════
+END OF GUIDE
+═══════════════════════════════════════════════════════════════════
+
+Ready to start? Open: http://127.0.0.1:5000/child-identity-card

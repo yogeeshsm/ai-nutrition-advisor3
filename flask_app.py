@@ -22,9 +22,17 @@ from usda_api import get_usda_api
 from who_immunization import who_api
 from gemini_chatbot import get_chatbot
 from translator import get_translation_service, LANGUAGES, t
+from mandi_price_api import register_mandi_routes, MandiPriceAPI
+from child_identity_qr import register_child_identity_routes
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'nutrition-advisor-secret-key-2025')
+
+# Register Mandi Price API routes
+register_mandi_routes(app)
+
+# Register Child Identity Card routes
+register_child_identity_routes(app)
 
 # Initialize translation service
 translation_service = get_translation_service()
@@ -60,11 +68,20 @@ def index():
         category_items = []
         for ing_name in ingredients:
             ing = ingredients_df[ingredients_df['name'] == ing_name].iloc[0]
+            # Determine unit based on serving size
+            serving_size = ing['serving_size_g']
+            if serving_size >= 1000:
+                unit = 'L' if category == 'Dairy' else 'kg'
+            else:
+                unit = 'kg'
+            
             category_items.append({
                 'name': ing['name'],
                 'cost': ing['cost_per_kg'],
                 'calories': ing['calories_per_100g'],
-                'emoji': get_food_emoji(category)
+                'emoji': get_food_emoji(category),
+                'unit': unit,
+                'serving_size': serving_size
             })
         ingredients_data.append({
             'category': category,
@@ -669,6 +686,241 @@ def api_chatbot_alternatives():
         
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+
+# Village Nutrition Economy Routes
+@app.route('/village-economy')
+def village_economy():
+    """Village Nutrition Economy Analyzer dashboard"""
+    return render_template('village_economy.html')
+
+@app.route('/api/economy-score')
+def api_economy_score():
+    """Get nutrition economy score for village"""
+    from village_economy import VillageEconomyAnalyzer
+    analyzer = VillageEconomyAnalyzer()
+    
+    village = request.args.get('village', '')
+    score_data = analyzer.get_economy_score(village)
+    
+    return jsonify(score_data)
+
+@app.route('/api/cheapest-foods')
+def api_cheapest_foods():
+    """Get cheapest nutritious foods this month"""
+    from village_economy import VillageEconomyAnalyzer
+    analyzer = VillageEconomyAnalyzer()
+    
+    village = request.args.get('village', '')
+    limit = int(request.args.get('limit', 20))
+    foods = analyzer.get_cheapest_nutritious_foods(village, limit)
+    
+    return jsonify(foods)
+
+@app.route('/api/local-crops')
+def api_local_crops():
+    """Get best local crops available now"""
+    from village_economy import VillageEconomyAnalyzer
+    analyzer = VillageEconomyAnalyzer()
+    
+    village = request.args.get('village', '')
+    crops = analyzer.get_best_local_crops(village)
+    
+    return jsonify(crops)
+
+@app.route('/api/spending-analysis')
+def api_spending_analysis():
+    """Get spending pattern analysis"""
+    from village_economy import VillageEconomyAnalyzer
+    analyzer = VillageEconomyAnalyzer()
+    
+    village = request.args.get('village', '')
+    analysis = analyzer.analyze_spending_patterns(village)
+    
+    return jsonify(analysis)
+
+@app.route('/api/education-sessions')
+def api_education_sessions():
+    """Get nutrition education sessions"""
+    from village_economy import VillageEconomyAnalyzer
+    analyzer = VillageEconomyAnalyzer()
+    
+    village = request.args.get('village', '')
+    sessions = analyzer.get_education_sessions(village)
+    
+    return jsonify(sessions)
+
+@app.route('/api/economy-recommendations')
+def api_economy_recommendations():
+    """Get cost-effective nutrition recommendations"""
+    from village_economy import VillageEconomyAnalyzer
+    analyzer = VillageEconomyAnalyzer()
+    
+    village = request.args.get('village', '')
+    recommendations = analyzer.get_recommendations(village)
+    
+    return jsonify(recommendations)
+
+@app.route('/api/add-price-update', methods=['POST'])
+def api_add_price_update():
+    """Add new ingredient price update"""
+    from village_economy import VillageEconomyAnalyzer
+    analyzer = VillageEconomyAnalyzer()
+    
+    data = request.json
+    result = analyzer.add_price_update(data)
+    
+    return jsonify(result)
+
+@app.route('/api/sync-mandi-prices', methods=['POST'])
+def api_sync_mandi_prices():
+    """Sync real-time mandi prices from data.gov.in API"""
+    from village_economy import sync_mandi_prices_to_economy
+    result = sync_mandi_prices_to_economy()
+    return jsonify(result)
+
+# ===== CHILD IDENTITY CARD API ENDPOINTS =====
+
+@app.route('/api/get-children', methods=['GET'])
+def api_get_children():
+    """Get all children for Child Identity Card selection"""
+    try:
+        conn = db.get_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT id, name, date_of_birth, gender, village
+            FROM children
+            WHERE id != 1
+            ORDER BY name ASC
+        """)
+        
+        children = []
+        for row in cursor.fetchall():
+            # Calculate age
+            from datetime import datetime
+            dob = datetime.strptime(row[2], '%Y-%m-%d')
+            age = (datetime.now() - dob).days // 365
+            
+            children.append({
+                'id': row[0],
+                'name': row[1],
+                'date_of_birth': row[2],
+                'gender': row[3],
+                'village': row[4] if row[4] else 'N/A',
+                'age': age
+            })
+        
+        conn.close()
+        
+        return jsonify({'success': True, 'children': children})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/get-child/<int:child_id>', methods=['GET'])
+def api_get_child(child_id):
+    """Get specific child information"""
+    try:
+        conn = db.get_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT id, name, date_of_birth, gender, parent_name, 
+                   village, address
+            FROM children
+            WHERE id = ?
+        """, (child_id,))
+        
+        row = cursor.fetchone()
+        conn.close()
+        
+        if not row:
+            return jsonify({'success': False, 'message': 'Child not found'}), 404
+        
+        # Calculate age
+        from datetime import datetime
+        dob = datetime.strptime(row[2], '%Y-%m-%d')
+        age = (datetime.now() - dob).days // 365
+        
+        child = {
+            'id': row[0],
+            'name': row[1],
+            'date_of_birth': row[2],
+            'gender': row[3],
+            'parent_name': row[4] if row[4] else 'N/A',
+            'village': row[5] if row[5] else 'N/A',
+            'address': row[6] if row[6] else 'N/A',
+            'age': age
+        }
+        
+        return jsonify({'success': True, 'child': child})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+# ===== ASHA WORKER UPDATE ENDPOINTS =====
+
+@app.route('/api/asha/mark-vaccination/<int:child_id>/<vaccine_name>', methods=['POST'])
+def asha_mark_vaccination(child_id, vaccine_name):
+    """ASHA worker marks a vaccination as completed"""
+    from child_identity_qr import ChildIdentityCard
+    
+    data = request.json or {}
+    child_card = ChildIdentityCard()
+    
+    result = child_card.mark_vaccination_complete(
+        child_id=child_id,
+        vaccine_name=vaccine_name,
+        notes=data.get('notes', '')
+    )
+    
+    return jsonify(result)
+
+@app.route('/api/asha/update-nutrition/<int:child_id>', methods=['POST'])
+def asha_update_nutrition(child_id):
+    """ASHA worker updates child's nutrition measurements"""
+    from child_identity_qr import ChildIdentityCard
+    
+    data = request.json
+    child_card = ChildIdentityCard()
+    
+    result = child_card.update_nutrition_measurement(
+        child_id=child_id,
+        weight_kg=data.get('weight_kg'),
+        height_cm=data.get('height_cm'),
+        notes=data.get('notes', '')
+    )
+    
+    return jsonify(result)
+
+@app.route('/api/asha/pending-vaccinations/<int:child_id>', methods=['GET'])
+def asha_get_pending_vaccinations(child_id):
+    """Get pending vaccinations for ASHA worker"""
+    from child_identity_qr import ChildIdentityCard
+    
+    child_card = ChildIdentityCard()
+    pending = child_card.get_pending_vaccinations(child_id)
+    
+    return jsonify({'success': True, 'pending_vaccinations': pending})
+
+@app.route('/api/asha/all-vaccinations/<int:child_id>', methods=['GET'])
+def asha_get_all_vaccinations(child_id):
+    """Get all vaccinations with status"""
+    from child_identity_qr import ChildIdentityCard
+    
+    child_card = ChildIdentityCard()
+    vaccinations = child_card.get_all_vaccinations(child_id)
+    
+    return jsonify({'success': True, 'vaccinations': vaccinations})
+
+@app.route('/api/asha/nutrition-score/<int:child_id>', methods=['GET'])
+def asha_get_nutrition_score(child_id):
+    """Calculate nutrition score"""
+    from child_identity_qr import ChildIdentityCard
+    
+    child_card = ChildIdentityCard()
+    score = child_card.calculate_nutrition_score(child_id)
+    
+    return jsonify({'success': True, 'nutrition_score': score})
+
 
 if __name__ == '__main__':
     import os

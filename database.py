@@ -153,6 +153,83 @@ def initialize_database():
         )
     """)
     
+    # Create child_identity_card table for QR-based digital cards
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS child_identity_cards (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            child_id INTEGER NOT NULL UNIQUE,
+            qr_code_id TEXT NOT NULL UNIQUE,
+            qr_code_data TEXT NOT NULL,
+            qr_code_image_path TEXT,
+            card_number TEXT NOT NULL UNIQUE,
+            is_active INTEGER DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (child_id) REFERENCES children(id)
+        )
+    """)
+    
+    # Create emergency_contacts table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS emergency_contacts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            child_id INTEGER NOT NULL,
+            contact_name TEXT NOT NULL,
+            contact_type TEXT NOT NULL,
+            phone_number TEXT NOT NULL,
+            relationship TEXT,
+            priority INTEGER DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (child_id) REFERENCES children(id)
+        )
+    """)
+    
+    # Create family_health_risks table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS family_health_risks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            child_id INTEGER NOT NULL,
+            condition_name TEXT NOT NULL,
+            severity TEXT,
+            family_member TEXT,
+            description TEXT,
+            precautions TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (child_id) REFERENCES children(id)
+        )
+    """)
+    
+    # Create child_nutrition_snapshot table for quick display
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS child_nutrition_snapshot (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            child_id INTEGER NOT NULL UNIQUE,
+            nutrition_status TEXT,
+            calorie_target INTEGER,
+            protein_target REAL,
+            iron_level TEXT,
+            calcium_level TEXT,
+            vitamin_a_level TEXT,
+            last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (child_id) REFERENCES children(id)
+        )
+    """)
+    
+    # Create vaccination_summary table for quick QR display
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS vaccination_summary (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            child_id INTEGER NOT NULL UNIQUE,
+            total_vaccinations INTEGER,
+            completed_vaccinations INTEGER,
+            pending_vaccinations INTEGER,
+            next_vaccine_name TEXT,
+            next_vaccine_date TEXT,
+            last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (child_id) REFERENCES children(id)
+        )
+    """)
+
     conn.commit()
     
     # Check if ingredients table is empty
@@ -198,8 +275,8 @@ def insert_sample_ingredients(conn):
         ("Green Beans", "Vegetables", 50, 1.8, 7.0, 0.1, 31, 2.7, 1.0, 37, 100),
         ("Brinjal (Eggplant)", "Vegetables", 35, 1.0, 5.9, 0.2, 25, 3.0, 0.3, 9, 150),
         
-        # Dairy & Eggs
-        ("Milk", "Dairy", 55, 3.2, 4.8, 3.2, 61, 0, 0.0, 113, 250),
+        # Dairy & Eggs (Milk measured per liter)
+        ("Milk", "Dairy", 55, 3.15, 4.8, 3.25, 61, 0, 0.0, 113, 1000),  # Per liter - USDA verified whole milk 3.25% fat
         ("Curd (Yogurt)", "Dairy", 60, 3.5, 4.7, 4.0, 60, 0, 0.1, 120, 150),
         ("Eggs", "Protein", 6, 13.0, 1.1, 11.0, 155, 0, 1.8, 50, 50),
         ("Paneer", "Dairy", 300, 18.0, 1.2, 20.0, 265, 0, 0.2, 208, 100),
@@ -269,6 +346,7 @@ def insert_sample_ingredients(conn):
     
     conn.commit()
     print(f"✅ Inserted {len(ingredients)} sample ingredients")
+    print("ℹ️  Run 'python usda_nutrition_manager.py' to update with accurate USDA nutrition data")
 
 def get_all_ingredients():
     """Retrieve all ingredients as a DataFrame"""

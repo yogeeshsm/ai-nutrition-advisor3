@@ -21,6 +21,7 @@ This application is designed to help Anganwadi workers create nutritionally bala
 - **📊 Nutrition Analysis**: Detailed breakdown of macronutrients and micronutrients
 - **💰 Budget Management**: Optimize meals to stay within weekly budget
 - **👶 Age-Specific Plans**: Customized plans for different age groups (1-3, 3-6, 6-10 years)
+- **🏘️ Village Nutrition Economy Analyzer**: Track local food prices, spending patterns, and cost-effective nutrition recommendations for communities
 
 ### User Interface
 
@@ -34,12 +35,25 @@ This application is designed to help Anganwadi workers create nutritionally bala
 
 ### Advanced Features
 
-- **� 25+ Animations**: Smooth transitions, gradient shifts, and interactive effects
+- **🎨 25+ Animations**: Smooth transitions, gradient shifts, and interactive effects
 - **⭐ Nutrition Scoring**: 0-100 score for meal plan quality
 - **📊 Analytics Dashboard**: Track effectiveness across budgets and age groups
 - **🗄️ Database Storage**: SQLite for storing meal plans and data
 - **🔄 Meal Variety**: Automatically varies meals across the week
 - **🎯 Category-wise Analysis**: Analyze nutrition by food categories
+- **✅ USDA Verified Data**: Integration with USDA FoodData Central for accurate nutrition
+- **💾 Smart Caching**: Local caching of nutrition data to minimize API calls
+- **🛒 Real-Time Mandi Prices**: Integration with data.gov.in for actual market prices across Karnataka
+
+### Data Accuracy 🎯
+
+- **USDA FoodData Central Integration**: Official USDA database for accurate nutrition information
+- **data.gov.in Mandi Prices**: Real-time commodity prices from 2500+ mandis across India
+- **Verified Nutrition Data**: All nutrition values can be updated with USDA-verified data
+- **No Fake Data**: When USDA API is configured, all calories, proteins, and nutrients are accurate
+- **Data Attribution**: Nutrition metrics display "USDA Verified" badges when using API data
+- **Smart Caching**: Reduces API calls by storing verified data locally
+- **Government Verified Prices**: Mandi prices sourced directly from Government of India Open Data Portal
 
 ## 🏗️ Technology Stack
 
@@ -99,6 +113,29 @@ python database.py
 ```
 
 This will create the SQLite database and populate it with sample ingredient data.
+
+### Step 5: Get Accurate USDA Nutrition Data (Recommended)
+
+For 100% accurate nutrition data instead of estimates:
+
+1. **Sign up for FREE USDA API Key**
+   - Visit: https://fdc.nal.usda.gov/api-key-signup.html
+   - Fill the form and submit
+   - Check your email for the API key
+
+2. **Update .env file**
+   ```powershell
+   # Open .env file and add your key:
+   USDA_API_KEY=YOUR_API_KEY_HERE
+   ```
+
+3. **Update all ingredients with verified data**
+   ```powershell
+   python update_nutrition_data.py
+   ```
+   Type `y` when prompted to update all ingredients
+
+📖 **For detailed instructions, see [USDA_API_SETUP.md](USDA_API_SETUP.md)**
 
 ## 🎮 Usage
 
@@ -421,6 +458,35 @@ Planned features:
 - [ ] Seasonal ingredient recommendations
 - [ ] Multi-user support with authentication
 - [ ] Integration with government databases
+- [x] **Village Nutrition Economy Analyzer** - Track local food prices, spending patterns, and cost-effective nutrition
+
+## 🏘️ Village Nutrition Economy Analyzer
+
+NEW feature designed for ASHA workers and community health workers:
+
+### What It Does
+- **📊 Price Tracking**: Monitor which foods are cheapest each month
+- **🌾 Local Crop Analysis**: Identify which local crops offer best nutrition per rupee
+- **🍔 Junk Food Spending**: Track where families spend more on unhealthy foods
+- **📚 Educational Dashboard**: Help parents and ASHA workers make cost-effective nutrition choices
+
+### Key Features
+- Monthly food price trends by village
+- Nutrition value per rupee calculations
+- Best buys recommendations
+- Seasonal local crop highlights
+- Spending pattern analysis
+- Education session tracking
+- Cost-effective meal recommendations
+
+### Benefits for Communities
+- ✅ Save 20-30% on food costs by choosing seasonal local foods
+- ✅ Improve nutrition while reducing spending
+- ✅ Educate families on hidden costs of junk food
+- ✅ Support local agriculture
+- ✅ Make data-driven nutrition decisions
+
+Access it at: **http://localhost:5000/village-economy**
 
 ## 📊 Sample Results
 

@@ -203,12 +203,17 @@ def get_usda_api(api_key: Optional[str] = None) -> Optional[USDAFoodAPI]:
             results = api.search_foods("rice")
     """
     import os
+    from dotenv import load_dotenv
+    
+    # Load environment variables
+    load_dotenv()
     
     if api_key is None:
         api_key = os.environ.get('USDA_API_KEY')
     
     if not api_key:
         print("⚠️ USDA API key not found. Set USDA_API_KEY environment variable.")
+        print("💡 Make sure you have a .env file with: USDA_API_KEY=your_key_here")
         return None
     
     return USDAFoodAPI(api_key)
