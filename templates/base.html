@@ -142,6 +142,53 @@
             width: 100%;
         }
         
+        /* Dropdown Menu Styling */
+        .dropdown-menu {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            padding: 10px 0;
+            margin-top: 10px;
+            animation: dropdownSlide 0.3s ease-out;
+        }
+        
+        @keyframes dropdownSlide {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .dropdown-item {
+            padding: 12px 25px;
+            transition: all 0.3s ease;
+            color: var(--dark-color);
+            font-weight: 500;
+        }
+        
+        .dropdown-item i {
+            margin-right: 10px;
+            width: 20px;
+            text-align: center;
+        }
+        
+        .dropdown-item:hover {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white !important;
+            transform: translateX(5px);
+            padding-left: 30px;
+        }
+        
+        .dropdown-item.active {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white !important;
+            font-weight: 600;
+        }
+        
         .main-container {
             max-width: 1400px;
             margin: 30px auto;
@@ -996,70 +1043,111 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
+                    <!-- Meal Planner Home -->
                     <li class="nav-item">
                         <a class="nav-link {% if request.path == '/' %}active{% endif %}" href="/">
                             <i class="fas fa-home"></i> Meal Planner
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.path == '/village-economy' %}active{% endif %}" href="/village-economy">
-                            <i class="fas fa-chart-line"></i> Village Economy
+                    
+                    <!-- Child Health Dropdown -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {% if request.path in ['/child-identity-card', '/growth-tracking', '/immunisation', '/who-vaccines'] %}active{% endif %}" 
+                           href="#" id="childHealthDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-baby"></i> Child Health
                         </a>
+                        <ul class="dropdown-menu" aria-labelledby="childHealthDropdown">
+                            <li>
+                                <a class="dropdown-item {% if request.path == '/child-identity-card' %}active{% endif %}" href="/child-identity-card">
+                                    <i class="fas fa-qrcode"></i> Child ID Card
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if request.path == '/growth-tracking' %}active{% endif %}" href="/growth-tracking">
+                                    <i class="fas fa-child"></i> Growth Tracking
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if request.path == '/immunisation' %}active{% endif %}" href="/immunisation">
+                                    <i class="fas fa-syringe"></i> Immunisation
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if request.path == '/who-vaccines' %}active{% endif %}" href="/who-vaccines">
+                                    <i class="fas fa-shield-virus"></i> WHO Vaccines
+                                </a>
+                            </li>
+                        </ul>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.path == '/child-identity-card' %}active{% endif %}" href="/child-identity-card">
-                            <i class="fas fa-qrcode"></i> Child ID Card
+                    
+                    <!-- AI Tools Dropdown -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {% if request.path in ['/chatbot', '/ml-recommendations', '/child-identity-scanner'] %}active{% endif %}" 
+                           href="#" id="aiToolsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-robot"></i> AI Tools
                         </a>
+                        <ul class="dropdown-menu" aria-labelledby="aiToolsDropdown">
+                            <li>
+                                <a class="dropdown-item {% if request.path == '/chatbot' %}active{% endif %}" href="/chatbot">
+                                    <i class="fas fa-comments"></i> AI Chatbot
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if request.path == '/ml-recommendations' %}active{% endif %}" href="/ml-recommendations">
+                                    <i class="fas fa-brain"></i> ML Recommendations
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if request.path == '/child-identity-scanner' %}active{% endif %}" href="/child-identity-scanner">
+                                    <i class="fas fa-mobile-alt"></i> QR Scanner
+                                </a>
+                            </li>
+                        </ul>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.path == '/child-identity-scanner' %}active{% endif %}" href="/child-identity-scanner">
-                            <i class="fas fa-mobile-alt"></i> QR Scanner
+                    
+                    <!-- Data & Analytics Dropdown -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {% if request.path in ['/nutrition-lookup', '/village-economy', '/analytics'] %}active{% endif %}" 
+                           href="#" id="dataAnalyticsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-chart-bar"></i> Data & Analytics
                         </a>
+                        <ul class="dropdown-menu" aria-labelledby="dataAnalyticsDropdown">
+                            <li>
+                                <a class="dropdown-item {% if request.path == '/nutrition-lookup' %}active{% endif %}" href="/nutrition-lookup">
+                                    <i class="fas fa-database"></i> USDA Lookup
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if request.path == '/village-economy' %}active{% endif %}" href="/village-economy">
+                                    <i class="fas fa-rupee-sign"></i> Village Economy
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if request.path == '/analytics' %}active{% endif %}" href="/analytics">
+                                    <i class="fas fa-chart-line"></i> Analytics
+                                </a>
+                            </li>
+                        </ul>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.path == '/nutrition-lookup' %}active{% endif %}" href="/nutrition-lookup">
-                            <i class="fas fa-database"></i> USDA Lookup
+                    
+                    <!-- General/Info -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {% if request.path in ['/health-info', '/about'] %}active{% endif %}" 
+                           href="#" id="generalDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-info-circle"></i> Info
                         </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.path == '/health-info' %}active{% endif %}" href="/health-info">
-                            <i class="fas fa-heartbeat"></i> Health Info
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.path == '/immunisation' %}active{% endif %}" href="/immunisation">
-                            <i class="fas fa-syringe"></i> Immunisation
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.path == '/growth-tracking' %}active{% endif %}" href="/growth-tracking">
-                            <i class="fas fa-child"></i> Growth Tracking
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.path == '/who-vaccines' %}active{% endif %}" href="/who-vaccines">
-                            <i class="fas fa-shield-virus"></i> WHO Vaccines
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.path == '/ml-recommendations' %}active{% endif %}" href="/ml-recommendations">
-                            <i class="fas fa-brain"></i> ML Recommendations
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.path == '/chatbot' %}active{% endif %}" href="/chatbot">
-                            <i class="fas fa-robot"></i> AI Chatbot
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.path == '/analytics' %}active{% endif %}" href="/analytics">
-                            <i class="fas fa-chart-line"></i> Analytics
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.path == '/about' %}active{% endif %}" href="/about">
-                            <i class="fas fa-info-circle"></i> About
-                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="generalDropdown">
+                            <li>
+                                <a class="dropdown-item {% if request.path == '/health-info' %}active{% endif %}" href="/health-info">
+                                    <i class="fas fa-heartbeat"></i> Health Info
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if request.path == '/about' %}active{% endif %}" href="/about">
+                                    <i class="fas fa-info-circle"></i> About
+                                </a>
+                            </li>
+                        </ul>
                     </li>
                 </ul>
                 
