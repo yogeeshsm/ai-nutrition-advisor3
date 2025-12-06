@@ -1,0 +1,516 @@
+{% extends "base.html" %}
+
+{% block title %}ML Recommendations - AI Nutrition Advisor{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="display-4">
+                <i class="fas fa-brain text-primary"></i> ML-Powered Meal Recommendations
+            </h1>
+            <p class="lead">Personalized recommendations using Machine Learning</p>
+        </div>
+    </div>
+
+    <!-- Child Selector -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <label class="form-label"><i class="fas fa-child"></i> Select Child</label>
+                    <select id="childSelect" class="form-select" onchange="loadRecommendations()">
+                        <option value="">Choose a child...</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card bg-gradient text-white" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <div class="card-body">
+                    <h5><i class="fas fa-lightbulb"></i> ML Models Active</h5>
+                    <p class="mb-0">
+                        <span class="badge bg-light text-dark me-2">Collaborative Filtering</span>
+                        <span class="badge bg-light text-dark me-2">Content-Based</span>
+                        <span class="badge bg-light text-dark">Hybrid</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ML Features Tabs -->
+    <ul class="nav nav-pills mb-4" id="mlTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="recommendations-tab" data-bs-toggle="pill" data-bs-target="#recommendations" type="button">
+                <i class="fas fa-star"></i> Recommendations
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="similar-tab" data-bs-toggle="pill" data-bs-target="#similar" type="button">
+                <i class="fas fa-users"></i> Similar Children
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="weekly-tab" data-bs-toggle="pill" data-bs-target="#weekly" type="button">
+                <i class="fas fa-calendar-week"></i> Weekly Variety
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="acceptance-tab" data-bs-toggle="pill" data-bs-target="#acceptance" type="button">
+                <i class="fas fa-chart-line"></i> Acceptance Predictor
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="profile-tab" data-bs-toggle="pill" data-bs-target="#profile" type="button">
+                <i class="fas fa-user-cog"></i> ML Profile
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content" id="mlTabContent">
+        
+        <!-- Recommendations Tab -->
+        <div class="tab-pane fade show active" id="recommendations" role="tabpanel">
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-primary" onclick="loadRecommendationType('hybrid')">
+                            <i class="fas fa-mix"></i> Hybrid (Best)
+                        </button>
+                        <button type="button" class="btn btn-outline-success" onclick="loadRecommendationType('collaborative')">
+                            <i class="fas fa-users"></i> Collaborative
+                        </button>
+                        <button type="button" class="btn btn-outline-info" onclick="loadRecommendationType('content')">
+                            <i class="fas fa-dna"></i> Content-Based
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-robot"></i> AI-Powered Ingredient Recommendations</h5>
+                            <small id="recType" class="text-muted">Hybrid recommendations combining multiple ML models</small>
+                        </div>
+                        <div class="card-body">
+                            <div id="recommendationsList" class="row">
+                                <div class="col-12 text-center text-muted">
+                                    <i class="fas fa-lightbulb fa-3x mb-3"></i>
+                                    <p>Select a child to see personalized recommendations</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Similar Children Tab -->
+        <div class="tab-pane fade" id="similar" role="tabpanel">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-users"></i> Children with Similar Profiles</h5>
+                    <small class="text-muted">Using collaborative filtering to find similar nutritional needs</small>
+                </div>
+                <div class="card-body">
+                    <div id="similarChildrenList">
+                        <p class="text-center text-muted">Select a child to find similar profiles</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Weekly Variety Tab -->
+        <div class="tab-pane fade" id="weekly" role="tabpanel">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-calendar-week"></i> Optimized Weekly Meal Plan</h5>
+                    <small class="text-muted">ML-optimized variety and nutrition balance</small>
+                </div>
+                <div class="card-body">
+                    <div id="weeklyPlan">
+                        <p class="text-center text-muted">Select a child to generate weekly variety plan</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Acceptance Predictor Tab -->
+        <div class="tab-pane fade" id="acceptance" role="tabpanel">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-chart-line"></i> Ingredient Acceptance Predictor</h5>
+                    <small class="text-muted">Predict which ingredients a child will likely accept</small>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <input type="text" id="ingredientSearch" class="form-control" 
+                                   placeholder="Type ingredient name..." 
+                                   onkeyup="predictAcceptance()">
+                        </div>
+                    </div>
+                    <div id="acceptancePrediction">
+                        <p class="text-center text-muted">Enter an ingredient name to predict acceptance</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ML Profile Tab -->
+        <div class="tab-pane fade" id="profile" role="tabpanel">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-user-cog"></i> ML Child Profile & Nutritional Priorities</h5>
+                </div>
+                <div class="card-body">
+                    <div id="mlProfile">
+                        <p class="text-center text-muted">Select a child to view ML profile</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<style>
+.recommendation-card {
+    border-left: 4px solid #667eea;
+    margin-bottom: 10px;
+    transition: all 0.3s;
+}
+
+.recommendation-card:hover {
+    transform: translateX(5px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.score-badge {
+    font-size: 1.2em;
+    padding: 8px 15px;
+}
+
+.source-collaborative { background: #28a745; }
+.source-content { background: #17a2b8; }
+.source-hybrid { background: #667eea; }
+
+.similarity-bar {
+    height: 10px;
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    border-radius: 5px;
+}
+
+.priority-high { color: #dc3545; font-weight: bold; }
+.priority-medium { color: #ffc107; }
+.priority-low { color: #28a745; }
+
+.day-card {
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 15px;
+}
+
+.acceptance-meter {
+    height: 30px;
+    background: #e0e0e0;
+    border-radius: 15px;
+    overflow: hidden;
+    position: relative;
+}
+
+.acceptance-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #dc3545, #ffc107, #28a745);
+    transition: width 0.5s ease;
+}
+</style>
+
+<script>
+let currentChildId = null;
+let currentRecType = 'hybrid';
+
+// Load children list
+async function loadChildren() {
+    try {
+        const response = await fetch('/api/get-children');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        
+        const select = document.getElementById('childSelect');
+        select.innerHTML = '<option value="">Choose a child...</option>';
+        
+        if (data.children && data.children.length > 0) {
+            data.children.forEach(child => {
+                const option = document.createElement('option');
+                option.value = child.id;
+                option.textContent = `${child.name} (${child.age_years} years, ${child.weight_kg} kg)`;
+                select.appendChild(option);
+            });
+        } else {
+            // No children in database - add sample option
+            select.innerHTML = `
+                <option value="">Choose a child...</option>
+                <option value="" disabled>No children registered yet</option>
+                <option value="" disabled>Please add children first via Growth Tracking page</option>
+            `;
+        }
+    } catch (error) {
+        console.error('Error loading children:', error);
+        const select = document.getElementById('childSelect');
+        select.innerHTML = `
+            <option value="">Error loading children</option>
+            <option value="" disabled>Please check console for details</option>
+        `;
+        // Show error alert
+        alert('Failed to load children. Please ensure:\n1. Server is running\n2. Database is initialized\n3. Children are registered in Growth Tracking');
+    }
+}
+
+// Load recommendations
+async function loadRecommendations() {
+    const childId = document.getElementById('childSelect').value;
+    if (!childId) return;
+    
+    currentChildId = childId;
+    
+    // Load all tabs
+    await loadRecommendationType(currentRecType);
+    await loadSimilarChildren();
+    await loadWeeklyVariety();
+    await loadMLProfile();
+}
+
+async function loadRecommendationType(type) {
+    if (!currentChildId) return;
+    
+    currentRecType = type;
+    const typeNames = {
+        'hybrid': 'Hybrid (Collaborative + Content-Based)',
+        'collaborative': 'Collaborative Filtering (Similar Children)',
+        'content': 'Content-Based (Nutritional Needs)'
+    };
+    
+    document.getElementById('recType').textContent = typeNames[type];
+    
+    try {
+        const response = await fetch(`/api/ml/recommendations/${currentChildId}?type=${type}&top_n=15`);
+        const data = await response.json();
+        
+        const container = document.getElementById('recommendationsList');
+        container.innerHTML = '';
+        
+        if (data.success && data.recommendations.length > 0) {
+            data.recommendations.forEach((rec, index) => {
+                const sourceClass = `source-${rec.source.replace('-based', '').replace(' ', '-')}`;
+                const score = Math.round(rec.score * 100) / 100;
+                
+                const card = `
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card recommendation-card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <h6 class="mb-2">${index + 1}. ${rec.ingredient}</h6>
+                                    <span class="badge ${sourceClass} score-badge">${score}</span>
+                                </div>
+                                <small class="text-muted">
+                                    <i class="fas fa-tag"></i> ${rec.source}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += card;
+            });
+        } else {
+            container.innerHTML = '<div class="col-12 text-center text-muted"><p>No recommendations available</p></div>';
+        }
+    } catch (error) {
+        console.error('Error loading recommendations:', error);
+    }
+}
+
+async function loadSimilarChildren() {
+    if (!currentChildId) return;
+    
+    try {
+        const response = await fetch(`/api/ml/similar-children/${currentChildId}?n=5`);
+        const data = await response.json();
+        
+        const container = document.getElementById('similarChildrenList');
+        container.innerHTML = '';
+        
+        if (data.success && data.similar_children.length > 0) {
+            data.similar_children.forEach(similar => {
+                const similarity = Math.round(similar.similarity_score * 100);
+                
+                const card = `
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6>Child ID: ${similar.child_id}</h6>
+                                <span class="badge bg-primary">${similarity}% Similar</span>
+                            </div>
+                            <div class="similarity-bar" style="width: ${similarity}%"></div>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += card;
+            });
+        } else {
+            container.innerHTML = '<p class="text-center text-muted">No similar children found</p>';
+        }
+    } catch (error) {
+        console.error('Error loading similar children:', error);
+    }
+}
+
+async function loadWeeklyVariety() {
+    if (!currentChildId) return;
+    
+    try {
+        const response = await fetch(`/api/ml/weekly-variety/${currentChildId}?days=7`);
+        const data = await response.json();
+        
+        const container = document.getElementById('weeklyPlan');
+        container.innerHTML = '';
+        
+        if (data.success && data.weekly_plan) {
+            data.weekly_plan.forEach(day => {
+                const ingredients = day.ingredients.map(ing => 
+                    `<span class="badge bg-info me-1">${ing.name}</span>`
+                ).join('');
+                
+                const card = `
+                    <div class="day-card">
+                        <h6><i class="fas fa-calendar-day"></i> Day ${day.day}</h6>
+                        <div class="mt-2">${ingredients || '<span class="text-muted">No ingredients</span>'}</div>
+                    </div>
+                `;
+                container.innerHTML += card;
+            });
+        } else {
+            container.innerHTML = '<p class="text-center text-muted">Unable to generate weekly plan</p>';
+        }
+    } catch (error) {
+        console.error('Error loading weekly variety:', error);
+    }
+}
+
+let acceptanceTimeout = null;
+async function predictAcceptance() {
+    const ingredient = document.getElementById('ingredientSearch').value.trim();
+    
+    if (!currentChildId || !ingredient) {
+        document.getElementById('acceptancePrediction').innerHTML = 
+            '<p class="text-center text-muted">Enter an ingredient name to predict acceptance</p>';
+        return;
+    }
+    
+    clearTimeout(acceptanceTimeout);
+    acceptanceTimeout = setTimeout(async () => {
+        try {
+            const response = await fetch(`/api/ml/predict-acceptance/${currentChildId}/${encodeURIComponent(ingredient)}`);
+            const data = await response.json();
+            
+            const container = document.getElementById('acceptancePrediction');
+            
+            if (data.success) {
+                const percentage = data.acceptance_percentage;
+                const strength = data.explanation.recommendation_strength;
+                const strengthColors = {
+                    'High': 'success',
+                    'Medium': 'warning',
+                    'Low': 'danger'
+                };
+                
+                container.innerHTML = `
+                    <div class="card">
+                        <div class="card-body">
+                            <h5>${data.ingredient}</h5>
+                            <h2 class="text-${strengthColors[strength]}">${percentage}% Acceptance</h2>
+                            <div class="acceptance-meter mb-3">
+                                <div class="acceptance-fill" style="width: ${percentage}%"></div>
+                            </div>
+                            <p><strong>Strength:</strong> <span class="badge bg-${strengthColors[strength]}">${strength}</span></p>
+                            <p><strong>Based on:</strong> ${data.explanation.similar_children_count} similar children</p>
+                        </div>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = `<div class="alert alert-warning">${data.error}</div>`;
+            }
+        } catch (error) {
+            console.error('Error predicting acceptance:', error);
+        }
+    }, 500);
+}
+
+async function loadMLProfile() {
+    if (!currentChildId) return;
+    
+    try {
+        const response = await fetch(`/api/ml/child-profile/${currentChildId}`);
+        const data = await response.json();
+        
+        const container = document.getElementById('mlProfile');
+        
+        if (data.success) {
+            const profile = data.profile;
+            const priorities = data.nutritional_priorities;
+            
+            const priorityBadges = Object.entries(priorities).map(([nutrient, level]) => {
+                const colorClass = level === 'high' ? 'danger' : level === 'medium' ? 'warning' : 'success';
+                return `
+                    <div class="col-md-3 mb-2">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h6>${nutrient.toUpperCase()}</h6>
+                                <span class="badge bg-${colorClass}">${level.toUpperCase()}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            container.innerHTML = `
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <h6>Child Profile</h6>
+                        <ul class="list-group">
+                            <li class="list-group-item"><strong>Age:</strong> ${profile.age_years} years</li>
+                            <li class="list-group-item"><strong>Weight:</strong> ${profile.weight_kg} kg</li>
+                            <li class="list-group-item"><strong>Height:</strong> ${profile.height_cm} cm</li>
+                            <li class="list-group-item"><strong>Meal Plans:</strong> ${profile.meal_plan_count}</li>
+                            <li class="list-group-item"><strong>Avg Nutrition Score:</strong> ${profile.avg_nutrition_score.toFixed(1)}</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Nutritional Priorities</h6>
+                        <div class="row">
+                            ${priorityBadges}
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else {
+            container.innerHTML = `<div class="alert alert-warning">${data.error}</div>`;
+        }
+    } catch (error) {
+        console.error('Error loading ML profile:', error);
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', () => {
+    loadChildren();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Child QR Code - Test</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        .qr-container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        .qr-code-img {
+            max-width: 300px;
+            height: auto;
+            border: 2px solid #dee2e6;
+            padding: 10px;
+            border-radius: 10px;
+        }
+        .child-info {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e7f3ff;
+            border-radius: 8px;
+        }
+        .loading {
+            color: #6c757d;
+        }
+        .error {
+            color: #dc3545;
+            padding: 15px;
+            background: #f8d7da;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center mb-4">🆔 Child Identity QR Code</h1>
+        
+        <div class="mb-3">
+            <label class="form-label">Select Child:</label>
+            <select id="childSelect" class="form-select" onchange="loadQRCode()">
+                <option value="">Choose a child...</option>
+            </select>
+        </div>
+
+        <div id="qrContainer" class="qr-container" style="display: none;">
+            <h3 id="childName" class="mb-3"></h3>
+            <img id="qrCodeImg" class="qr-code-img" alt="QR Code" />
+            <div class="child-info">
+                <p class="mb-1"><strong>Card Number:</strong> <span id="cardNumber"></span></p>
+                <p class="mb-1"><strong>QR Code ID:</strong> <span id="qrCodeId"></span></p>
+                <p class="mb-0"><small class="text-muted">Scan this QR code with your mobile device</small></p>
+            </div>
+            <button class="btn btn-primary mt-3" onclick="downloadQR()">📥 Download QR Code</button>
+        </div>
+
+        <div id="loading" class="loading text-center" style="display: none;">
+            <div class="spinner-border" role="status"></div>
+            <p>Generating QR Code...</p>
+        </div>
+
+        <div id="error" class="error" style="display: none;"></div>
+    </div>
+
+    <script>
+        let currentQRData = null;
+
+        async function loadChildren() {
+            try {
+                const response = await fetch('/api/get-children');
+                const data = await response.json();
+                
+                const select = document.getElementById('childSelect');
+                select.innerHTML = '<option value="">Choose a child...</option>';
+                
+                if (data.success && data.children.length > 0) {
+                    data.children.forEach(child => {
+                        const option = document.createElement('option');
+                        option.value = child.id;
+                        option.textContent = `${child.name} (${child.age_years} years)`;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading children:', error);
+            }
+        }
+
+        async function loadQRCode() {
+            const childId = document.getElementById('childSelect').value;
+            if (!childId) {
+                document.getElementById('qrContainer').style.display = 'none';
+                return;
+            }
+
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('qrContainer').style.display = 'none';
+            document.getElementById('error').style.display = 'none';
+
+            try {
+                // Generate/Get QR code
+                const response = await fetch(`/api/child-identity/create/${childId}`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+
+                if (data.success && data.qr_code_base64) {
+                    currentQRData = data;
+                    
+                    // Display QR code
+                    document.getElementById('qrCodeImg').src = `data:image/png;base64,${data.qr_code_base64}`;
+                    document.getElementById('cardNumber').textContent = data.card_number || 'N/A';
+                    document.getElementById('qrCodeId').textContent = data.qr_code_id || 'N/A';
+                    
+                    // Get child name
+                    const children = await fetch('/api/get-children').then(r => r.json());
+                    const child = children.children.find(c => c.id == childId);
+                    document.getElementById('childName').textContent = child ? child.name : 'Child';
+                    
+                    document.getElementById('qrContainer').style.display = 'block';
+                } else {
+                    document.getElementById('error').textContent = data.message || 'Failed to generate QR code';
+                    document.getElementById('error').style.display = 'block';
+                }
+            } catch (error) {
+                document.getElementById('error').textContent = `Error: ${error.message}`;
+                document.getElementById('error').style.display = 'block';
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        function downloadQR() {
+            if (!currentQRData || !currentQRData.qr_code_base64) return;
+            
+            const link = document.createElement('a');
+            link.href = `data:image/png;base64,${currentQRData.qr_code_base64}`;
+            link.download = `child_qr_${currentQRData.qr_code_id}.png`;
+            link.click();
+        }
+
+        // Load children on page load
+        loadChildren();
+    </script>
+</body>
+</html>

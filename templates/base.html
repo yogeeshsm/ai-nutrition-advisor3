@@ -1042,6 +1042,11 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/ml-recommendations' %}active{% endif %}" href="/ml-recommendations">
+                            <i class="fas fa-brain"></i> ML Recommendations
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link {% if request.path == '/chatbot' %}active{% endif %}" href="/chatbot">
                             <i class="fas fa-robot"></i> AI Chatbot
                         </a>

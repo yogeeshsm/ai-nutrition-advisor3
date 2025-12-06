@@ -5,95 +5,47 @@
 {% block content %}
 <div class="text-center mb-5">
     <h1 class="display-4 fw-bold" style="color: white;">
-        <i class="fas fa-utensils"></i> {{ t('app_title') }}
+        <i class="fas fa-utensils"></i> AI Nutrition Advisor
     </h1>
     <p class="lead" style="color: white; opacity: 0.9;">
-        {{ t('meal_planner') }}
+        Smart Meal Planning for Anganwadi Centers
     </p>
 </div>
 
-<!-- Recent Updates Section -->
-<div class="card mb-4" style="border: 3px solid #FFD700; box-shadow: 0 8px 20px rgba(255,215,0,0.3);">
-    <div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
-        <h4 class="mb-0"><i class="fas fa-star"></i> Recent Changes & New Features</h4>
+<!-- Quick Access Features -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-star"></i> Quick Access Features</h5>
     </div>
     <div class="card-body">
-        <div class="row">
-            <!-- Mobile Child ID Card Feature -->
-            <div class="col-md-6 mb-3">
-                <div class="card h-100" style="border-left: 5px solid #4CAF50;">
-                    <div class="card-body">
-                        <h5 class="card-title">
-                            <i class="fas fa-qrcode text-success"></i> ⭐ Mobile Child ID Card
-                            <span class="badge bg-success ms-2">NEW</span>
-                        </h5>
-                        <p class="card-text"><strong>Digital health cards with QR codes for instant access</strong></p>
-                        
-                        <div class="mb-2">
-                            <small class="text-muted">Example: Lakshmi, 5 years (ID: CHILD_070848)</small>
-                        </div>
-                        
-                        <ul class="list-unstyled mb-3">
-                            <li><i class="fas fa-check-circle text-success"></i> <strong>Vaccination Status:</strong> BCG ✔, OPV ✔, DPT ✔, MR ❗</li>
-                            <li><i class="fas fa-check-circle text-success"></i> <strong>Nutrition Levels:</strong> 14.2kg, 97cm, MUAC: Normal, Score: 88/100</li>
-                            <li><i class="fas fa-check-circle text-success"></i> <strong>Family Health Risks:</strong> Mother (Anemia), Father (Hypertension)</li>
-                            <li><i class="fas fa-check-circle text-success"></i> <strong>Emergency Contacts:</strong> 3 contacts with instant dial</li>
-                        </ul>
-                        
-                        <div class="d-grid gap-2">
-                            <a href="/child-identity-card" class="btn btn-success">
-                                <i class="fas fa-id-card"></i> Create Child ID Card
-                            </a>
-                            <a href="/child-identity-scanner" class="btn btn-outline-success">
-                                <i class="fas fa-qr-code"></i> ASHA Scanner
-                            </a>
-                        </div>
-                        
-                        <div class="mt-3 p-2 bg-light rounded">
-                            <small><strong>ASHA Worker Features:</strong></small>
-                            <ul class="small mb-0">
-                                <li>Scan QR → Instant child data</li>
-                                <li>Mark vaccinations as done</li>
-                                <li>Update weight & height</li>
-                                <li>Auto-refresh parent's card</li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
+        <div class="row g-3">
+            <div class="col-md-3 col-sm-6">
+                <a href="/chatbot" class="btn btn-outline-primary w-100 h-100 d-flex flex-column align-items-center justify-content-center py-3">
+                    <i class="fas fa-robot fa-2x mb-2"></i>
+                    <strong>AI Health Chatbot</strong>
+                    <small class="text-muted">Get instant advice</small>
+                </a>
             </div>
-            
-            <!-- Other Features -->
-            <div class="col-md-6 mb-3">
-                <div class="card h-100" style="border-left: 5px solid #2196F3;">
-                    <div class="card-body">
-                        <h5 class="card-title">
-                            <i class="fas fa-chart-line text-primary"></i> Other Features
-                        </h5>
-                        
-                        <div class="list-group list-group-flush">
-                            <a href="/growth-tracking" class="list-group-item list-group-item-action">
-                                <i class="fas fa-child text-info"></i> <strong>Growth Tracking</strong>
-                                <small class="d-block text-muted">Monitor child growth with WHO standards</small>
-                            </a>
-                            <a href="/immunisation" class="list-group-item list-group-item-action">
-                                <i class="fas fa-syringe text-danger"></i> <strong>Immunisation Schedule</strong>
-                                <small class="d-block text-muted">Track vaccination progress</small>
-                            </a>
-                            <a href="/village-economy" class="list-group-item list-group-item-action">
-                                <i class="fas fa-chart-pie text-warning"></i> <strong>Village Economy Dashboard</strong>
-                                <small class="d-block text-muted">Real-time Mandi prices & analytics</small>
-                            </a>
-                            <a href="/nutrition-lookup" class="list-group-item list-group-item-action">
-                                <i class="fas fa-database text-success"></i> <strong>USDA Food Database</strong>
-                                <small class="d-block text-muted">Nutrition facts for 400K+ foods</small>
-                            </a>
-                            <a href="/chatbot" class="list-group-item list-group-item-action">
-                                <i class="fas fa-robot text-secondary"></i> <strong>AI Health Chatbot</strong>
-                                <small class="d-block text-muted">Get instant health advice</small>
-                            </a>
-                        </div>
-                    </div>
-                </div>
+            <div class="col-md-3 col-sm-6">
+                <a href="/growth-tracking" class="btn btn-outline-info w-100 h-100 d-flex flex-column align-items-center justify-content-center py-3">
+                    <i class="fas fa-child fa-2x mb-2"></i>
+                    <strong>Growth Tracking</strong>
+                    <small class="text-muted">WHO standards</small>
+                </a>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <a href="/immunisation" class="btn btn-outline-danger w-100 h-100 d-flex flex-column align-items-center justify-content-center py-3">
+                    <i class="fas fa-syringe fa-2x mb-2"></i>
+                    <strong>Immunisation</strong>
+                    <small class="text-muted">Track vaccines</small>
+                </a>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <a href="/village-economy" class="btn btn-outline-warning w-100 h-100 d-flex flex-column align-items-center justify-content-center py-3">
+                    <i class="fas fa-chart-pie fa-2x mb-2"></i>
+                    <strong>Village Economy</strong>
+                    <small class="text-muted">Mandi prices</small>
+                </a>
             </div>
         </div>
     </div>

@@ -12,3 +12,4 @@ qrcode==8.0
 Pillow==11.0.0
 google-generativeai==0.3.2
 googletrans==4.0.0rc1
+mysql-connector-python==9.1.0

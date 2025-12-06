@@ -7,15 +7,22 @@ from fpdf import FPDF
 import io
 from datetime import datetime
 
-# Try to import googletrans, but make it optional
-try:
-    from googletrans import Translator
-    TRANSLATION_AVAILABLE = True
-except (ImportError, ModuleNotFoundError):
-    TRANSLATION_AVAILABLE = False
-    print("⚠️ Translation module not available. Language switching disabled.")
+# Translation availability flag
+TRANSLATION_AVAILABLE = False
 
-# Food category emojis
+def get_translator():
+    """Get translator instance if available"""
+    global TRANSLATION_AVAILABLE
+    try:
+        from googletrans import Translator
+        TRANSLATION_AVAILABLE = True
+        return Translator()
+    except Exception as e:
+        TRANSLATION_AVAILABLE = False
+        print(f"WARNING: Translation not available: {e}")
+        return None
+
+# Food category emojis (fallback)
 FOOD_EMOJIS = {
     'Grains': '🌾',
     'Pulses': '🫘',
@@ -30,8 +37,133 @@ FOOD_EMOJIS = {
     'Nutrition Rich': '💪',
 }
 
-def get_food_emoji(category):
-    """Get emoji for food category"""
+# Individual food item emojis for unique representation
+INGREDIENT_EMOJIS = {
+    # Grains
+    'Rice': '🍚',
+    'Wheat Flour': '🌾',
+    'Ragi Flour': '🌾',
+    'Jowar (Sorghum)': '🌾',
+    'Bajra (Pearl Millet)': '🌾',
+    'Oats': '🥣',
+    'Quinoa': '🌾',
+    
+    # Pulses
+    'Toor Dal': '🫘',
+    'Moong Dal': '🫘',
+    'Masoor Dal': '🫘',
+    'Chana Dal': '🫘',
+    'Urad Dal': '🫘',
+    'Rajma (Kidney Beans)': '🫘',
+    'Chickpeas (Kabuli Chana)': '🫘',
+    'Black Gram (Whole Urad)': '🫘',
+    'Soya Chunks': '🫘',
+    
+    # Vegetables
+    'Potato': '🥔',
+    'Onion': '🧅',
+    'Tomato': '🍅',
+    'Carrot': '🥕',
+    'Cauliflower': '🥦',
+    'Broccoli': '🥦',
+    'Cabbage': '🥬',
+    'Cabbage (Green)': '🥬',
+    'Pumpkin': '🎃',
+    'Bottle Gourd (Lauki)': '🥒',
+    'Ridge Gourd (Turai)': '🥒',
+    'Bitter Gourd (Karela)': '🥒',
+    'Eggplant (Brinjal)': '🍆',
+    'Okra (Bhindi)': '🌱',
+    'Bell Pepper (Capsicum)': '🫑',
+    'Green Chili': '🌶️',
+    'Drumstick': '🥒',
+    'Radish': '🥕',
+    'Beetroot': '🥕',
+    'Sweet Potato': '🍠',
+    'Garlic': '🧄',
+    'Ginger': '🫚',
+    
+    # Leafy Vegetables
+    'Spinach (Palak)': '🥬',
+    'Spinach (Palak) Fresh': '🥬',
+    'Fenugreek Leaves (Methi)': '🌿',
+    'Mustard Greens (Sarson)': '🥬',
+    'Amaranth Leaves (Chaulai)': '🥬',
+    'Curry Leaves': '🌿',
+    'Coriander Leaves (Dhania)': '🌿',
+    'Mint Leaves (Pudina)': '🌿',
+    'Radish Greens': '🥬',
+    'Drumstick Leaves (Moringa)': '🌿',
+    'Lettuce': '🥬',
+    
+    # Fruits
+    'Banana': '🍌',
+    'Apple': '🍎',
+    'Orange': '🍊',
+    'Papaya': '🍈',
+    'Mango': '🥭',
+    'Guava': '🍐',
+    'Pomegranate': '🍎',
+    'Watermelon': '🍉',
+    'Grapes': '🍇',
+    'Pineapple': '🍍',
+    'Dates': '🌴',
+    'Lemon': '🍋',
+    
+    # Dairy
+    'Milk': '🥛',
+    'Curd (Yogurt)': '🥛',
+    'Paneer': '🧀',
+    'Ghee': '🧈',
+    'Butter': '🧈',
+    
+    # Protein
+    'Eggs': '🥚',
+    'Chicken': '🍗',
+    'Fish': '🐟',
+    'Mutton': '🍖',
+    
+    # Dry Fruits & Nuts
+    'Almonds': '🌰',
+    'Cashews': '🥜',
+    'Walnuts': '🌰',
+    'Peanuts': '🥜',
+    'Raisins': '�葡',
+    'Dates (Dry)': '🌴',
+    
+    # Fats & Oils
+    'Sunflower Oil': '🌻',
+    'Mustard Oil': '🫗',
+    'Coconut Oil': '🥥',
+    'Groundnut Oil': '🥜',
+    'Olive Oil': '🫒',
+    
+    # Sweeteners
+    'Jaggery': '🍯',
+    'Sugar': '🍬',
+    'Honey': '🍯',
+    
+    # Nutrition Rich
+    'Flaxseeds': '🌱',
+    'Chia Seeds': '🌱',
+    'Sesame Seeds (Til)': '🌱',
+    'Pumpkin Seeds': '🎃',
+    'Sunflower Seeds': '🌻',
+    
+    # Other
+    'Salt': '🧂',
+    'Turmeric': '🌟',
+    'Cumin Seeds': '🌱',
+    'Coriander Seeds': '🌱',
+    'Black Pepper': '⚫',
+    'Tea': '🍵',
+    'Coffee': '☕',
+}
+
+def get_food_emoji(category, ingredient_name=None):
+    """Get emoji for food item - first try specific ingredient, then fall back to category"""
+    if ingredient_name and ingredient_name in INGREDIENT_EMOJIS:
+        return INGREDIENT_EMOJIS[ingredient_name]
     return FOOD_EMOJIS.get(category, '🍽️')
 
 class NutritionPDF(FPDF):

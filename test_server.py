@@ -15,7 +15,23 @@ def get_db_connection():
 
 @app.route('/')
 def home():
-    return "<h1>Test Server Running</h1><a href='/child-identity-card'>Child ID Card</a>"
+    return """
+    <html>
+    <head><title>AI Nutrition Advisor</title></head>
+    <body>
+        <h1>AI Nutrition Advisor</h1>
+        <h2>Available Features:</h2>
+        <ul>
+            <li><a href='/child-identity-card'>Child ID Card</a> - Generate QR codes for children</li>
+            <li><a href='/child-identity-scanner'>ASHA Scanner</a> - Scan child QR codes</li>
+        </ul>
+        <p><strong>Note:</strong> This is the test server with limited features. 
+        The full application with 60+ routes including meal planning, analytics, health info, 
+        immunization tracking, growth monitoring, nutrition lookup, WHO vaccines, chatbot, 
+        and village economy features is currently unavailable due to dependency issues.</p>
+    </body>
+    </html>
+    """
 
 @app.route('/child-identity-card')
 def child_card():
@@ -29,7 +45,7 @@ def child_scanner():
 def api_get_children():
     """Get all children"""
     print("\n" + "="*60)
-    print("📞 API CALLED: /api/get-children")
+    print("API CALLED: /api/get-children")
     print("="*60)
     try:
         conn = get_db_connection()
@@ -41,7 +57,7 @@ def api_get_children():
             WHERE id != 1
             ORDER BY name ASC
         """
-        print(f"🔍 Executing SQL:\n{query}")
+        print(f"Executing SQL:\n{query}")
         cursor.execute(query)
         
         children = []
@@ -59,12 +75,12 @@ def api_get_children():
             })
         
         conn.close()
-        print(f"✅ SUCCESS: Returning {len(children)} children")
+        print(f"SUCCESS: Returning {len(children)} children")
         print("="*60 + "\n")
         return jsonify({'success': True, 'children': children})
     except Exception as e:
         import traceback
-        print(f"❌ ERROR OCCURRED:")
+        print(f"ERROR OCCURRED:")
         print(f"Error message: {e}")
         print(f"\nFull traceback:")
         traceback.print_exc()
@@ -97,7 +113,7 @@ def create_child_card(child_id):
         conn.commit()
         conn.close()
         
-        print(f"✅ Card created: {card_number}")
+        print(f"Card created: {card_number}")
         return jsonify({
             'success': True,
             'card_number': card_number,
@@ -105,7 +121,7 @@ def create_child_card(child_id):
         })
     except Exception as e:
         import traceback
-        print(f"❌ Error creating card: {e}")
+        print(f"Error creating card: {e}")
         traceback.print_exc()
         return jsonify({'success': False, 'message': str(e)})
 
@@ -141,7 +157,7 @@ def get_child_card(child_id):
             }
         })
     except Exception as e:
-        print(f"❌ Error getting card: {e}")
+        print(f"Error getting card: {e}")
         return jsonify({'success': False, 'message': str(e)})
 
 @app.route('/api/child-identity/qr/<int:child_id>', methods=['GET'])
@@ -162,7 +178,7 @@ def get_qr_code(child_id):
         
         return send_file(img_io, mimetype='image/png')
     except Exception as e:
-        print(f"❌ Error generating QR: {e}")
+        print(f"Error generating QR: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/child-identity/emergency-contact', methods=['POST'])
@@ -197,7 +213,7 @@ def add_emergency_contact():
         
         return jsonify({'success': True})
     except Exception as e:
-        print(f"❌ Error adding contact: {e}")
+        print(f"Error adding contact: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/child-identity/family-health-risk', methods=['POST'])
@@ -226,7 +242,7 @@ def add_family_risk():
         
         return jsonify({'success': True})
     except Exception as e:
-        print(f"❌ Error adding family risk: {e}")
+        print(f"Error adding family risk: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
 if __name__ == '__main__':
@@ -235,4 +251,4 @@ if __name__ == '__main__':
     print("="*60)
     print("URL: http://127.0.0.1:5000/child-identity-card")
     print("="*60)
-    app.run(debug=True, port=5000)
+    app.run(debug=False, port=5000, host='0.0.0.0')

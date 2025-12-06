@@ -1,22 +1,62 @@
 """
 Database module for Nutrition Advisor
-Handles SQLite database operations for ingredients and meal plans
+Handles SQLite and MySQL database operations for ingredients and meal plans
 """
 
 import sqlite3
 import pandas as pd
 from datetime import datetime
 import os
+from db_config import DB_TYPE, SQLITE_DB_PATH, MYSQL_CONFIG
 
-DATABASE_PATH = "nutrition_advisor.db"
+# Try to import MySQL connector
+try:
+    import mysql.connector
+    from mysql.connector import Error as MySQLError
+    MYSQL_AVAILABLE = True
+except ImportError:
+    MYSQL_AVAILABLE = False
+    MySQLError = Exception
+
+DATABASE_PATH = SQLITE_DB_PATH  # Keep for backward compatibility
 
 def get_connection():
-    """Create and return a database connection"""
-    conn = sqlite3.connect(DATABASE_PATH)
-    return conn
+    """Create and return a database connection (SQLite or MySQL)"""
+    if DB_TYPE == 'mysql':
+        if not MYSQL_AVAILABLE:
+            raise ImportError("MySQL connector not installed. Run: pip install mysql-connector-python")
+        try:
+            conn = mysql.connector.connect(**MYSQL_CONFIG)
+            return conn
+        except MySQLError as e:
+            raise Exception(f"MySQL connection failed: {e}")
+    else:
+        # Default to SQLite
+        conn = sqlite3.connect(SQLITE_DB_PATH)
+        return conn
+
+def get_sql_type(datatype):
+    """Convert SQL datatypes between SQLite and MySQL"""
+    if DB_TYPE == 'mysql':
+        conversions = {
+            'INTEGER PRIMARY KEY AUTOINCREMENT': 'INT AUTO_INCREMENT PRIMARY KEY',
+            'INTEGER': 'INT',
+            'TEXT': 'VARCHAR(500)',
+            'REAL': 'DECIMAL(10,2)',
+            'DATE': 'DATE',
+            'TIMESTAMP DEFAULT CURRENT_TIMESTAMP': 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP'
+        }
+        for old, new in conversions.items():
+            datatype = datatype.replace(old, new)
+    return datatype
 
 def initialize_database():
     """Initialize database with tables and sample data"""
+    # Skip initialization for MySQL - tables already created by migration
+    if DB_TYPE == 'mysql':
+        print("Using MySQL - tables already initialized")
+        return
+    
     conn = get_connection()
     cursor = conn.cursor()
     
@@ -243,7 +283,7 @@ def initialize_database():
         insert_health_information(conn)
     
     conn.close()
-    print("✅ Database initialized successfully!")
+    print("SUCCESS: Database initialized successfully!")
 
 def insert_sample_ingredients(conn):
     """Insert sample Indian ingredients with nutritional data"""
@@ -276,10 +316,10 @@ def insert_sample_ingredients(conn):
         ("Brinjal (Eggplant)", "Vegetables", 35, 1.0, 5.9, 0.2, 25, 3.0, 0.3, 9, 150),
         
         # Dairy & Eggs (Milk measured per liter)
-        ("Milk", "Dairy", 55, 3.15, 4.8, 3.25, 61, 0, 0.0, 113, 1000),  # Per liter - USDA verified whole milk 3.25% fat
-        ("Curd (Yogurt)", "Dairy", 60, 3.5, 4.7, 4.0, 60, 0, 0.1, 120, 150),
+        ("Milk", "Dairy", 55, 3.15, 4.8, 3.25, 61, 0, 0.0, 113, 1000),  # Per 1000ml
+        ("Curd (Yogurt)", "Dairy", 1200, 3.5, 4.7, 4.0, 60, 0, 0.1, 120, 50),  # Per 50gm
         ("Eggs", "Protein", 6, 13.0, 1.1, 11.0, 155, 0, 1.8, 50, 50),
-        ("Paneer", "Dairy", 300, 18.0, 1.2, 20.0, 265, 0, 0.2, 208, 100),
+        ("Paneer", "Dairy", 500, 18.0, 1.2, 20.0, 265, 0, 0.2, 208, 200),  # Per 200gm
         
         # Oils & Fats
         ("Cooking Oil", "Fats", 150, 0, 0, 100.0, 884, 0, 0, 0, 10),
@@ -307,16 +347,16 @@ def insert_sample_ingredients(conn):
         ("Pineapple", "Fruits", 50, 0.5, 13.0, 0.1, 50, 1.4, 0.3, 13, 150),
         
         # Leafy Vegetables
-        ("Spinach (Palak) Fresh", "Leafy Vegetables", 40, 2.9, 3.6, 0.4, 23, 2.2, 2.7, 99, 100),
-        ("Fenugreek Leaves (Methi)", "Leafy Vegetables", 50, 4.4, 6.0, 0.9, 49, 25.0, 33.5, 395, 100),
-        ("Mustard Greens (Sarson)", "Leafy Vegetables", 45, 3.0, 4.5, 0.4, 27, 3.2, 2.0, 115, 100),
-        ("Amaranth Leaves (Chaulai)", "Leafy Vegetables", 50, 4.6, 4.0, 0.5, 23, 2.6, 5.4, 215, 100),
-        ("Curry Leaves", "Leafy Vegetables", 200, 6.1, 18.7, 1.0, 108, 6.4, 0.9, 830, 20),
-        ("Coriander Leaves (Dhania)", "Leafy Vegetables", 80, 3.3, 3.7, 0.5, 23, 2.8, 1.8, 67, 50),
-        ("Mint Leaves (Pudina)", "Leafy Vegetables", 100, 3.8, 8.4, 0.7, 44, 6.8, 11.9, 199, 50),
+        ("Spinach (Palak) Fresh", "Leafy Vegetables", 50, 2.9, 3.6, 0.4, 23, 2.2, 2.7, 99, 100),
+        ("Fenugreek Leaves (Methi)", "Leafy Vegetables", 65, 4.4, 6.0, 0.9, 49, 25.0, 33.5, 395, 100),
+        ("Mustard Greens (Sarson)", "Leafy Vegetables", 55, 3.0, 4.5, 0.4, 27, 3.2, 2.0, 115, 100),
+        ("Amaranth Leaves (Chaulai)", "Leafy Vegetables", 45, 4.6, 4.0, 0.5, 23, 2.6, 5.4, 215, 100),
+        ("Curry Leaves", "Leafy Vegetables", 325, 6.1, 18.7, 1.0, 108, 6.4, 0.9, 830, 20),
+        ("Coriander Leaves (Dhania)", "Leafy Vegetables", 150, 3.3, 3.7, 0.5, 23, 2.8, 1.8, 67, 50),
+        ("Mint Leaves (Pudina)", "Leafy Vegetables", 115, 3.8, 8.4, 0.7, 44, 6.8, 11.9, 199, 50),
         ("Radish Greens", "Leafy Vegetables", 30, 2.0, 3.6, 0.3, 20, 2.5, 1.5, 90, 100),
-        ("Drumstick Leaves (Moringa)", "Leafy Vegetables", 60, 9.4, 8.3, 1.4, 64, 2.0, 4.0, 185, 100),
-        ("Cabbage (Green)", "Leafy Vegetables", 25, 1.3, 5.8, 0.1, 25, 2.5, 0.5, 40, 100),
+        ("Drumstick Leaves (Moringa)", "Leafy Vegetables", 115, 9.4, 8.3, 1.4, 64, 2.0, 4.0, 185, 100),
+        ("Cabbage (Green)", "Leafy Vegetables", 32, 1.3, 5.8, 0.1, 25, 2.5, 0.5, 40, 100),
         ("Lettuce", "Leafy Vegetables", 150, 1.4, 2.9, 0.2, 15, 1.3, 0.9, 36, 100),
         
         # Nutrition-Rich Foods
@@ -345,8 +385,8 @@ def insert_sample_ingredients(conn):
     """, ingredients)
     
     conn.commit()
-    print(f"✅ Inserted {len(ingredients)} sample ingredients")
-    print("ℹ️  Run 'python usda_nutrition_manager.py' to update with accurate USDA nutrition data")
+    print(f"SUCCESS: Inserted {len(ingredients)} sample ingredients")
+    print("INFO: Run 'python usda_nutrition_manager.py' to update with accurate USDA nutrition data")
 
 def get_all_ingredients():
     """Retrieve all ingredients as a DataFrame"""
@@ -537,7 +577,7 @@ def insert_health_information(conn):
     """, health_data)
     
     conn.commit()
-    print("✅ Health information added successfully!")
+    print("SUCCESS: Health information added successfully!")
 
 # Child and Immunisation Management Functions
 
@@ -746,5 +786,5 @@ def get_growth_chart_data(child_id):
 if __name__ == "__main__":
     # Initialize database when run directly
     initialize_database()
-    print("\n📊 Sample data:")
+    print("\nSample data:")
     print(get_all_ingredients().head())

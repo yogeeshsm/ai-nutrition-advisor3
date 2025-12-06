@@ -271,22 +271,33 @@ class ChildIdentityCard:
         Returns:
             PIL Image object
         """
-        # Convert data to JSON string
-        json_data = json.dumps(data_dict, ensure_ascii=False)
+        # Create simplified data for better scanning
+        # Instead of embedding all data, use a URL with QR code ID
+        simple_data = {
+            'qr_id': data_dict.get('qr_code_id', ''),
+            'name': data_dict.get('name', ''),
+            'dob': data_dict.get('date_of_birth', ''),
+            'card': data_dict.get('card_number', ''),
+            'scan_url': f"http://127.0.0.1:5000/api/child-identity/scan/{data_dict.get('qr_code_id', '')}"
+        }
         
-        # Create QR code
+        # Convert to compact JSON
+        json_data = json.dumps(simple_data, separators=(',', ':'))
+        
+        # Create QR code with optimal settings for scanning
         qr = qrcode.QRCode(
-            version=None,
-            error_correction=qrcode.constants.ERROR_CORRECT_H,  # High error correction
-            box_size=size,
-            border=border,
+            version=None,  # Auto-determine size
+            error_correction=qrcode.constants.ERROR_CORRECT_M,  # Medium - better for dense data
+            box_size=12,  # Larger boxes for easier scanning
+            border=4,  # Standard border
         )
         
         qr.add_data(json_data)
         qr.make(fit=True)
         
-        # Create image
+        # Create high-contrast image for better scanning
         img = qr.make_image(fill_color="black", back_color="white")
+        
         return img
     
     def create_child_identity_card(self, child_id):
@@ -310,6 +321,21 @@ class ChildIdentityCard:
             
             existing = cursor.fetchone()
             if existing:
+                # Get the existing card data including image path
+                cursor.execute("""
+                    SELECT * FROM child_identity_cards WHERE child_id = ?
+                """, (child_id,))
+                card_data = cursor.fetchone()
+                
+                # Read QR code image and convert to base64
+                qr_code_base64 = None
+                if card_data and card_data['qr_code_image_path'] and os.path.exists(card_data['qr_code_image_path']):
+                    try:
+                        with open(card_data['qr_code_image_path'], 'rb') as img_file:
+                            qr_code_base64 = base64.b64encode(img_file.read()).decode('utf-8')
+                    except Exception as e:
+                        print(f"Error reading QR image: {e}")
+                
                 # Reactivate if deactivated
                 cursor.execute("""
                     UPDATE child_identity_cards SET is_active = 1, updated_at = ?
@@ -321,7 +347,9 @@ class ChildIdentityCard:
                     'success': True,
                     'message': 'Card already exists',
                     'card_id': existing['id'],
-                    'qr_code_id': existing['qr_code_id']
+                    'qr_code_id': existing['qr_code_id'],
+                    'qr_code_base64': qr_code_base64,
+                    'image_path': card_data['qr_code_image_path'] if card_data else None
                 }
             
             # Get child data
@@ -360,6 +388,14 @@ class ChildIdentityCard:
             
             conn.commit()
             
+            # Read the saved QR image and convert to base64 for response
+            qr_code_base64 = None
+            try:
+                with open(image_path, 'rb') as img_file:
+                    qr_code_base64 = base64.b64encode(img_file.read()).decode('utf-8')
+            except Exception as e:
+                print(f"Error reading saved QR image: {e}")
+            
             return {
                 'success': True,
                 'message': 'Child identity card created successfully',
@@ -367,6 +403,7 @@ class ChildIdentityCard:
                 'qr_code_id': qr_code_id,
                 'card_number': card_number,
                 'image_path': image_path,
+                'qr_code_base64': qr_code_base64,
                 'child_data': child_data
             }
         

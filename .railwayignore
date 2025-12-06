@@ -1,0 +1,39 @@
+# Railway Ignore - Don't upload these files
+
+# Virtual Environment
+.venv/
+venv/
+env/
+
+# Python Cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Database (will use Railway MySQL or create new SQLite)
+nutrition_advisor.db
+*.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.bak
+test_server.py.bak
+
+# Local development
+run.bat
+start_server.py
