@@ -25,13 +25,18 @@ git push origin main
 Click on your deployed service → **Variables** tab → **RAW Editor** → Paste:
 
 ```
-GEMINI_API_KEY=AIzaSyC5arnzs6fKIyQgo4MmyIgz-Cr31DhBA0s
-USDA_API_KEY=bI8E0Icmi3gYlneZJ27MWK6ChaaUYBCn2Vv801NH
-DATA_GOV_API_KEY=579b464db66ec23bdd000001e3f853bd7199484e65326b922dbca7ce
-SECRET_KEY=nutrition-advisor-secret-key-2025
+GEMINI_API_KEY=your_gemini_api_key_here
+USDA_API_KEY=your_usda_api_key_here
+DATA_GOV_API_KEY=your_data_gov_api_key_here
+SECRET_KEY=your_secret_key_here
 FLASK_ENV=production
 DB_TYPE=sqlite
 ```
+
+**Get your API keys:**
+- **Gemini API**: https://makersuite.google.com/app/apikey
+- **USDA API**: https://fdc.nal.usda.gov/api-key-signup.html
+- **Data.gov.in API**: https://data.gov.in/catalogs
 
 Click **Save** → Railway redeploys automatically!
 

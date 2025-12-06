@@ -24,10 +24,10 @@
 In Railway dashboard, go to **Variables** tab and add:
 
 ```
-# Required API Keys
-GEMINI_API_KEY=AIzaSyC5arnzs6fKIyQgo4MmyIgz-Cr31DhBA0s
-USDA_API_KEY=bI8E0Icmi3gYlneZJ27MWK6ChaaUYBCn2Vv801NH
-DATA_GOV_API_KEY=579b464db66ec23bdd000001e3f853bd7199484e65326b922dbca7ce
+# Required API Keys (Get your own keys from the providers)
+GEMINI_API_KEY=your_gemini_api_key_here
+USDA_API_KEY=your_usda_api_key_here
+DATA_GOV_API_KEY=your_data_gov_api_key_here
 
 # Flask Configuration
 SECRET_KEY=nutrition-advisor-secret-key-2025
