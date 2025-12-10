@@ -1,7 +1,19 @@
+# -*- coding: utf-8 -*-
 """
 AI Nutrition Advisor - Full Version
 All 60+ features enabled
 """
+import sys
+import os
+
+# Fix encoding for Windows console
+if sys.platform == 'win32':
+    import codecs
+    try:
+        sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer, 'strict')
+        sys.stderr = codecs.getwriter('utf-8')(sys.stderr.buffer, 'strict')
+    except:
+        pass
 
 from flask import Flask, render_template, request, jsonify, send_file, session, redirect, url_for
 import json
@@ -18,7 +30,15 @@ from usda_api import get_usda_api
 from who_immunization import who_api
 from child_identity_qr import register_child_identity_routes
 from mandi_price_api import register_mandi_routes
-import translator
+
+# Translation import (optional)
+try:
+    import translator
+    TRANSLATOR_AVAILABLE = True
+except Exception as e:
+    print(f"[WARNING] Translation service disabled: {e}")
+    translator = None
+    TRANSLATOR_AVAILABLE = False
 
 # Chatbot import
 try:
@@ -26,11 +46,11 @@ try:
     chatbot = get_chatbot()
     CHATBOT_AVAILABLE = chatbot is not None
     if CHATBOT_AVAILABLE:
-        print("✓ AI Chatbot initialized successfully")
+        print("[OK] AI Chatbot initialized successfully")
     else:
-        print("⚠ AI Chatbot not available - check GEMINI_API_KEY")
+        print("[WARNING] AI Chatbot not available - check GEMINI_API_KEY")
 except Exception as e:
-    print(f"⚠ Chatbot initialization failed: {e}")
+    print(f"[WARNING] Chatbot initialization failed: {e}")
     chatbot = None
     CHATBOT_AVAILABLE = False
 
@@ -45,13 +65,22 @@ register_child_identity_routes(app)
 @app.context_processor
 def inject_helpers():
     current_lang = session.get('language', 'en')
-    trans_service = translator.get_translation_service()
-    return dict(
-        t=lambda key: trans_service.get_translation(key, current_lang),
-        current_language=current_lang,
-        languages=translator.LANGUAGES,
-        translate=lambda text, dest_lang=None: trans_service.translate_text(text, current_lang, dest_lang or current_lang)
-    )
+    if TRANSLATOR_AVAILABLE and translator:
+        trans_service = translator.get_translation_service()
+        return dict(
+            t=lambda key: trans_service.get_translation(key, current_lang),
+            current_language=current_lang,
+            languages=translator.LANGUAGES,
+            translate=lambda text, dest_lang=None: trans_service.translate_text(text, current_lang, dest_lang or current_lang)
+        )
+    else:
+        # Fallback when translator not available
+        return dict(
+            t=lambda key: key,
+            current_language='en',
+            languages={'en': {'name': 'English', 'flag': '🇬🇧'}},
+            translate=lambda text, dest_lang=None: text
+        )
 
 # Initialize database
 db.initialize_database()
@@ -912,12 +941,23 @@ def ml_get_child_profile(child_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 if __name__ == '__main__':
-    from waitress import serve
-    print("="*60)
-    print("AI NUTRITION ADVISOR - ALL FEATURES + ML")
-    print("="*60)
-    print("Server: http://127.0.0.1:5000")
-    print("Routes: 50+ endpoints active")
-    print("ML Features: Collaborative + Content-Based + Hybrid")
-    print("="*60)
-    serve(app, host='0.0.0.0', port=5000, threads=4)
+    try:
+        from waitress import serve
+        print("="*60)
+        print("AI NUTRITION ADVISOR - ALL FEATURES + ML")
+        print("="*60)
+        print("Server: http://127.0.0.1:5000")
+        print("Routes: 50+ endpoints active")
+        print("ML Features: Collaborative + Content-Based + Hybrid")
+        print("="*60)
+        serve(app, host='0.0.0.0', port=5000, threads=4)
+    except ImportError:
+        print("="*60)
+        print("AI NUTRITION ADVISOR - ALL FEATURES + ML")
+        print("="*60)
+        print("Server: http://127.0.0.1:5000")
+        print("Routes: 50+ endpoints active")
+        print("ML Features: Collaborative + Content-Based + Hybrid")
+        print("="*60)
+        app.run(host='0.0.0.0', port=5000, debug=False)
+

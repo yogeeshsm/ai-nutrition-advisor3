@@ -102,6 +102,16 @@ def inject_translation():
 # Initialize database on startup
 db.initialize_database()
 
+@app.route('/health')
+def health_check():
+    """Health check endpoint for Render"""
+    return jsonify({
+        'status': 'healthy',
+        'service': 'AI Nutrition Advisor',
+        'features': '60+',
+        'timestamp': datetime.now().isoformat()
+    }), 200
+
 @app.route('/')
 def index():
     """Home page - Meal Planner"""
@@ -876,7 +886,19 @@ def api_get_children():
             # Calculate age
             from datetime import datetime
             dob = datetime.strptime(row[2], '%Y-%m-%d')
-            age = (datetime.now() - dob).days // 365
+            age_years = (datetime.now() - dob).days // 365
+            
+            # Get latest weight from growth_tracking
+            cursor.execute("""
+                SELECT weight_kg 
+                FROM growth_tracking 
+                WHERE child_id = ? 
+                ORDER BY measurement_date DESC 
+                LIMIT 1
+            """, (row[0],))
+            
+            weight_row = cursor.fetchone()
+            weight_kg = weight_row[0] if weight_row else 0.0
             
             children.append({
                 'id': row[0],
@@ -884,7 +906,9 @@ def api_get_children():
                 'date_of_birth': row[2],
                 'gender': row[3],
                 'village': row[4] if row[4] else 'N/A',
-                'age': age
+                'age': age_years,
+                'age_years': age_years,
+                'weight_kg': weight_kg
             })
         
         conn.close()
@@ -997,6 +1021,350 @@ def asha_get_nutrition_score(child_id):
     score = child_card.calculate_nutrition_score(child_id)
     
     return jsonify({'success': True, 'nutrition_score': score})
+
+
+# ========================================
+# FOOD IMAGE RECOGNITION ENDPOINTS
+# ========================================
+
+@app.route('/food-recognition')
+def food_recognition():
+    """Food image recognition page"""
+    return render_template('food_recognition.html')
+
+@app.route('/api/analyze-food-image', methods=['POST'])
+def analyze_food_image():
+    """
+    Analyze food image and return nutrition info
+    Accepts: multipart/form-data with 'image' file
+    Returns: JSON with food type, portion size, and nutrition
+    """
+    try:
+        # Check if image is in request
+        if 'image' not in request.files:
+            return jsonify({
+                'success': False,
+                'error': 'No image file provided'
+            }), 400
+        
+        file = request.files['image']
+        
+        # Check if file is empty
+        if file.filename == '':
+            return jsonify({
+                'success': False,
+                'error': 'No file selected'
+            }), 400
+        
+        # Check file type
+        allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'}
+        file_ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+        
+        if file_ext not in allowed_extensions:
+            return jsonify({
+                'success': False,
+                'error': f'Invalid file type. Allowed: {", ".join(allowed_extensions)}'
+            }), 400
+        
+        # Read image data
+        image_data = file.read()
+        
+        # Import food recognition module
+        try:
+            from food_recognition import analyze_food_image as analyze_image
+            
+            # Analyze the image
+            result = analyze_image(image_data)
+            
+            return jsonify(result)
+            
+        except ImportError as e:
+            return jsonify({
+                'success': False,
+                'error': 'Food recognition module not available. Install required dependencies.',
+                'details': str(e)
+            }), 500
+        except Exception as e:
+            return jsonify({
+                'success': False,
+                'error': 'Failed to analyze image',
+                'details': str(e)
+            }), 500
+            
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': 'Server error',
+            'details': str(e)
+        }), 500
+
+@app.route('/api/batch-analyze-food', methods=['POST'])
+def batch_analyze_food():
+    """
+    Analyze multiple food images at once
+    Useful for analyzing full meal with multiple items
+    """
+    try:
+        if 'images' not in request.files:
+            return jsonify({
+                'success': False,
+                'error': 'No images provided'
+            }), 400
+        
+        files = request.files.getlist('images')
+        
+        if len(files) == 0:
+            return jsonify({
+                'success': False,
+                'error': 'No files selected'
+            }), 400
+        
+        # Limit to 5 images per batch
+        if len(files) > 5:
+            return jsonify({
+                'success': False,
+                'error': 'Maximum 5 images per batch'
+            }), 400
+        
+        # Import food recognition module
+        try:
+            from food_recognition import analyze_food_image as analyze_image
+            
+            results = []
+            total_nutrition = {
+                'calories': 0,
+                'protein': 0,
+                'carbs': 0,
+                'fat': 0,
+                'fiber': 0,
+                'iron': 0,
+                'calcium': 0
+            }
+            
+            for file in files:
+                image_data = file.read()
+                result = analyze_image(image_data)
+                
+                if result['success']:
+                    results.append(result)
+                    # Add to total nutrition
+                    for key in total_nutrition:
+                        total_nutrition[key] += result['nutrition'][key]
+            
+            # Round total nutrition
+            for key in total_nutrition:
+                total_nutrition[key] = round(total_nutrition[key], 2)
+            
+            return jsonify({
+                'success': True,
+                'items': results,
+                'total_items': len(results),
+                'total_nutrition': total_nutrition,
+                'timestamp': datetime.now().isoformat()
+            })
+            
+        except ImportError as e:
+            return jsonify({
+                'success': False,
+                'error': 'Food recognition module not available',
+                'details': str(e)
+            }), 500
+        except Exception as e:
+            return jsonify({
+                'success': False,
+                'error': 'Failed to process images',
+                'details': str(e)
+            }), 500
+            
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': 'Server error',
+            'details': str(e)
+        }), 500
+
+@app.route('/api/food-database')
+def get_food_database():
+    """Get list of supported foods in the recognition database"""
+    try:
+        from food_recognition import INDIAN_FOOD_DATABASE
+        
+        foods = []
+        for key, data in INDIAN_FOOD_DATABASE.items():
+            foods.append({
+                'id': key,
+                'name': key.replace('_', ' ').title(),
+                'category': data['category'],
+                'nutrition_per_100g': data['nutrition_per_100g']
+            })
+        
+        return jsonify({
+            'success': True,
+            'foods': foods,
+            'total': len(foods)
+        })
+    except ImportError:
+        return jsonify({
+            'success': False,
+            'error': 'Food database not available'
+        }), 500
+
+
+# ========================================
+# ML RECOMMENDATION SYSTEM ENDPOINTS
+# ========================================
+
+@app.route('/ml-recommendations')
+def ml_recommendations_page():
+    """ML Recommendations page"""
+    return render_template('ml_recommendations.html')
+
+@app.route('/api/ml/train', methods=['POST'])
+def train_ml_models():
+    """Train ML recommendation models"""
+    try:
+        from ml_recommender import MealRecommendationSystem
+        
+        recommender = MealRecommendationSystem()
+        result = recommender.train_models()
+        
+        return jsonify({
+            'success': True,
+            'message': 'ML models trained successfully',
+            'details': result
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/ml/recommendations/<int:child_id>', methods=['GET'])
+def get_ml_recommendations(child_id):
+    """Get ML-powered recommendations for a child"""
+    try:
+        from ml_recommender import MealRecommendationSystem
+        
+        recommender = MealRecommendationSystem()
+        rec_type = request.args.get('type', 'hybrid')
+        top_n = int(request.args.get('top_n', 10))
+        
+        recommendations = recommender.get_recommendations(
+            child_id=child_id,
+            recommendation_type=rec_type,
+            top_n=top_n
+        )
+        
+        return jsonify({
+            'success': True,
+            'child_id': child_id,
+            'type': rec_type,
+            'recommendations': recommendations
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/ml/similar-children/<int:child_id>', methods=['GET'])
+def get_similar_children(child_id):
+    """Get similar children for collaborative filtering"""
+    try:
+        from ml_recommender import MealRecommendationSystem
+        
+        recommender = MealRecommendationSystem()
+        top_n = int(request.args.get('top_n', 5))
+        
+        similar = recommender.find_similar_children(child_id, top_n=top_n)
+        
+        return jsonify({
+            'success': True,
+            'child_id': child_id,
+            'similar_children': similar
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/ml/weekly-variety', methods=['POST'])
+def generate_weekly_variety():
+    """Generate 7-day variety plan using ML"""
+    try:
+        from ml_recommender import MealRecommendationSystem
+        
+        data = request.json
+        child_id = data.get('child_id')
+        budget = data.get('budget', 2000)
+        
+        recommender = MealRecommendationSystem()
+        weekly_plan = recommender.generate_weekly_variety(
+            child_id=child_id,
+            budget=budget
+        )
+        
+        return jsonify({
+            'success': True,
+            'weekly_plan': weekly_plan
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/ml/acceptance-prediction', methods=['POST'])
+def predict_meal_acceptance():
+    """Predict meal acceptance rate using ML"""
+    try:
+        from ml_recommender import MealRecommendationSystem
+        
+        data = request.json
+        child_id = data.get('child_id')
+        ingredients = data.get('ingredients', [])
+        
+        recommender = MealRecommendationSystem()
+        prediction = recommender.predict_meal_acceptance(
+            child_id=child_id,
+            ingredients=ingredients
+        )
+        
+        return jsonify({
+            'success': True,
+            'prediction': prediction
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/ml/child-profile/<int:child_id>', methods=['GET'])
+def get_ml_child_profile(child_id):
+    """Get ML-generated child profile"""
+    try:
+        from ml_recommender import MealRecommendationSystem
+        
+        recommender = MealRecommendationSystem()
+        profile = recommender.prepare_child_profile(child_id)
+        
+        if not profile:
+            return jsonify({
+                'success': False,
+                'error': 'Child not found'
+            }), 404
+        
+        return jsonify({
+            'success': True,
+            'profile': profile
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 
 if __name__ == '__main__':

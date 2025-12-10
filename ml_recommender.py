@@ -616,6 +616,241 @@ class MealRecommendationSystem:
         }
         
         return explanation
+    
+    # ==================== MAIN RECOMMENDATION METHOD ====================
+    
+    def get_recommendations(self, child_id, recommendation_type='hybrid', top_n=10):
+        """
+        Get personalized ingredient recommendations for a child
+        
+        Args:
+            child_id: ID of the child
+            recommendation_type: 'hybrid', 'collaborative', or 'content'
+            top_n: Number of recommendations to return
+            
+        Returns:
+            List of recommended ingredients with scores
+        """
+        try:
+            if recommendation_type == 'collaborative':
+                return self.collaborative_recommendations(child_id, top_n=top_n)
+            elif recommendation_type == 'content':
+                return self.content_based_recommendations(child_id, top_n=top_n)
+            else:  # hybrid (default)
+                return self.hybrid_recommendations(child_id, top_n=top_n)
+        except Exception as e:
+            print(f"Error generating recommendations: {e}")
+            # Fallback to simple recommendations based on nutrition data
+            return self._get_fallback_recommendations(child_id, top_n)
+    
+    def _get_fallback_recommendations(self, child_id, top_n=10):
+        """
+        Fallback recommendations when ML models aren't trained
+        Based on nutritional needs and popular ingredients
+        """
+        conn = self.get_connection()
+        
+        # Get all ingredients ranked by nutrition score
+        query = """
+            SELECT name, category, protein_per_100g, iron_per_100g, 
+                   calcium_per_100g, calories_per_100g, cost_per_kg
+            FROM ingredients
+            WHERE protein_per_100g > 0 AND iron_per_100g > 0
+            ORDER BY (protein_per_100g + iron_per_100g + calcium_per_100g) DESC
+            LIMIT ?
+        """
+        
+        ingredients = pd.read_sql_query(query, conn, params=(top_n * 2,))
+        conn.close()
+        
+        recommendations = []
+        for idx, ing in ingredients.iterrows():
+            # Calculate score based on nutrition density
+            nutrition_score = (
+                ing['protein_per_100g'] * 2 +  # Protein is important
+                ing['iron_per_100g'] * 3 +      # Iron is critical
+                ing['calcium_per_100g'] * 0.5 +  # Calcium matters
+                ing['calories_per_100g'] * 0.1   # Energy
+            ) / ing['cost_per_kg']  # Normalize by cost
+            
+            recommendations.append({
+                'ingredient_name': ing['name'],
+                'category': ing['category'],
+                'score': round(nutrition_score, 2),
+                'reason': 'High nutrition density and value',
+                'protein': ing['protein_per_100g'],
+                'iron': ing['iron_per_100g'],
+                'calcium': ing['calcium_per_100g']
+            })
+        
+        # Sort by score and return top N
+        recommendations = sorted(recommendations, key=lambda x: x['score'], reverse=True)
+        return recommendations[:top_n]
+    
+    def train_models(self):
+        """Train all ML models and return status"""
+        try:
+            success = self.train_all_models()
+            return {
+                'collaborative_model': 'trained' if success else 'limited_data',
+                'content_model': 'trained' if success else 'limited_data',
+                'status': 'ready'
+            }
+        except Exception as e:
+            return {
+                'error': str(e),
+                'status': 'fallback_mode',
+                'message': 'Using fallback recommendations'
+            }
+    
+    def find_similar_children(self, child_id, top_n=5):
+        """
+        Find children similar to the given child
+        Returns list of tuples (child_id, similarity_score)
+        """
+        try:
+            conn = self.get_connection()
+            
+            # Get all children with their basic info
+            query = """
+                SELECT DISTINCT c.id, c.name, c.date_of_birth, c.gender, c.village,
+                       g.weight_kg, g.height_cm, g.bmi
+                FROM children c
+                LEFT JOIN growth_tracking g ON c.id = g.child_id
+                WHERE c.id != ?
+                ORDER BY g.measurement_date DESC
+            """
+            
+            children = pd.read_sql_query(query, conn, params=(child_id,))
+            conn.close()
+            
+            if children.empty:
+                return []
+            
+            # Calculate age similarity
+            target_query = """
+                SELECT date_of_birth FROM children WHERE id = ?
+            """
+            target_dob = pd.read_sql_query(target_query, self.get_connection(), params=(child_id,))
+            
+            if target_dob.empty:
+                return []
+            
+            from datetime import datetime
+            target_age = (datetime.now() - pd.to_datetime(target_dob['date_of_birth'].iloc[0])).days / 365.25
+            
+            similar = []
+            for idx, child in children.iterrows():
+                if pd.isna(child['date_of_birth']):
+                    continue
+                    
+                child_age = (datetime.now() - pd.to_datetime(child['date_of_birth'])).days / 365.25
+                age_diff = abs(target_age - child_age)
+                
+                # Similarity score (1.0 = identical age, decreases with age difference)
+                similarity = max(0, 1.0 - (age_diff / 5.0))  # 5 years = 0 similarity
+                
+                if similarity > 0.3:  # Only include reasonably similar children
+                    similar.append({
+                        'child_id': int(child['id']),
+                        'name': child['name'],
+                        'age_years': round(child_age, 1),
+                        'similarity_score': round(similarity, 2),
+                        'village': child['village'] if not pd.isna(child['village']) else 'Unknown'
+                    })
+            
+            # Sort by similarity and return top N
+            similar = sorted(similar, key=lambda x: x['similarity_score'], reverse=True)
+            return similar[:top_n]
+            
+        except Exception as e:
+            print(f"Error finding similar children: {e}")
+            return []
+    
+    def generate_weekly_variety(self, child_id, budget=2000):
+        """
+        Generate a 7-day meal plan with variety using ML recommendations
+        """
+        try:
+            # Get hybrid recommendations
+            recommendations = self.get_recommendations(child_id, 'hybrid', top_n=30)
+            
+            # Generate weekly plan with variety
+            weekly_plan = []
+            used_recently = set()
+            
+            for day in range(7):
+                day_ingredients = []
+                day_categories = {}
+                
+                for rec in recommendations:
+                    ing_name = rec['ingredient_name']
+                    category = rec.get('category', 'Other')
+                    
+                    # Skip if used in last 2 days
+                    if ing_name in used_recently:
+                        continue
+                    
+                    # Limit per category
+                    if day_categories.get(category, 0) >= 2:
+                        continue
+                    
+                    day_ingredients.append(rec)
+                    day_categories[category] = day_categories.get(category, 0) + 1
+                    used_recently.add(ing_name)
+                    
+                    if len(day_ingredients) >= 8:
+                        break
+                
+                # Clear used list every 3 days
+                if day % 3 == 2:
+                    used_recently.clear()
+                
+                weekly_plan.append({
+                    'day': day + 1,
+                    'day_name': ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][day],
+                    'ingredients': day_ingredients[:8]
+                })
+            
+            return weekly_plan
+            
+        except Exception as e:
+            print(f"Error generating weekly variety: {e}")
+            return []
+    
+    def predict_meal_acceptance(self, child_id, ingredients):
+        """
+        Predict how well a child will accept a meal with given ingredients
+        Returns acceptance score 0-100
+        """
+        try:
+            if not ingredients:
+                return 50  # Neutral
+            
+            total_acceptance = 0
+            for ingredient in ingredients:
+                acceptance = self.predict_ingredient_acceptance(child_id, ingredient)
+                total_acceptance += acceptance
+            
+            avg_acceptance = (total_acceptance / len(ingredients)) * 100
+            
+            return {
+                'acceptance_score': round(avg_acceptance, 1),
+                'confidence': 'high' if len(ingredients) >= 5 else 'medium',
+                'recommendation': 'Highly likely to accept' if avg_acceptance > 70 else 
+                                 'Moderately likely to accept' if avg_acceptance > 50 else 
+                                 'May need encouragement',
+                'ingredients_analyzed': len(ingredients)
+            }
+            
+        except Exception as e:
+            print(f"Error predicting acceptance: {e}")
+            return {
+                'acceptance_score': 50,
+                'confidence': 'low',
+                'recommendation': 'Unable to predict',
+                'error': str(e)
+            }
 
 
 # ==================== HELPER FUNCTIONS ====================

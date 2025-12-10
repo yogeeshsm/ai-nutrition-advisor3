@@ -1,0 +1,25 @@
+services:
+  # Web Service
+  - type: web
+    name: ai-nutrition-advisor
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn flask_app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: FLASK_ENV
+        value: production
+      - key: DB_TYPE
+        value: sqlite
+      - key: SECRET_KEY
+        generateValue: true
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: USDA_API_KEY
+        sync: false
+      - key: DATA_GOV_API_KEY
+        sync: false
+    autoDeploy: true
+    healthCheckPath: /

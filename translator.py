@@ -12,9 +12,10 @@ from functools import lru_cache
 try:
     from googletrans import Translator
     TRANSLATOR_AVAILABLE = True
-except ImportError:
+except Exception as e:
     TRANSLATOR_AVAILABLE = False
-    print("⚠️ googletrans not installed. Run: pip install googletrans==4.0.0-rc1")
+    print(f"⚠️ Translation service unavailable: {e}")
+    Translator = None
 
 # Supported languages
 LANGUAGES = {
@@ -422,11 +423,12 @@ class TranslationService:
     def __init__(self):
         """Initialize the translation service"""
         self.translator = None
-        if TRANSLATOR_AVAILABLE:
+        if TRANSLATOR_AVAILABLE and Translator is not None:
             try:
                 self.translator = Translator()
             except Exception as e:
                 print(f"⚠️ Translation service initialization failed: {e}")
+                self.translator = None
     
     @lru_cache(maxsize=1000)
     def translate(self, text: str, target_lang: str, source_lang: str = 'en') -> str:

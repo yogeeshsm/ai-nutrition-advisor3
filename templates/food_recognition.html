@@ -1,0 +1,547 @@
+{% extends "base.html" %}
+
+{% block title %}📸 Food Recognition - AI Nutrition Advisor{% endblock %}
+
+{% block extra_css %}
+<style>
+    .hero-section {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 3rem 0;
+        margin-bottom: 2rem;
+    }
+
+    .hero-section h1 {
+        color: white;
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .hero-section p {
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 1.1rem;
+    }
+
+    .upload-zone {
+        border: 3px dashed #667eea;
+        border-radius: 15px;
+        padding: 3rem;
+        text-align: center;
+        background: #f8f9ff;
+        cursor: pointer;
+        transition: all 0.3s;
+        margin-bottom: 2rem;
+    }
+
+    .upload-zone:hover {
+        border-color: #764ba2;
+        background: #f0f2ff;
+        transform: translateY(-2px);
+    }
+
+    .upload-zone.dragover {
+        background: #e8ebff;
+        border-color: #5a67d8;
+    }
+
+    .upload-icon {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+    }
+
+    .preview-image {
+        max-width: 100%;
+        max-height: 400px;
+        border-radius: 10px;
+        margin: 1rem 0;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .result-card {
+        background: white;
+        border-radius: 15px;
+        padding: 2rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        margin-bottom: 1.5rem;
+        animation: slideIn 0.5s;
+    }
+
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .food-name {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #2d3748;
+        margin-bottom: 0.5rem;
+    }
+
+    .portion-badge {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        border-radius: 50px;
+        font-weight: bold;
+        margin-right: 0.5rem;
+    }
+
+    .portion-small {
+        background: #fef5e7;
+        color: #f39c12;
+    }
+
+    .portion-medium {
+        background: #e8f5e9;
+        color: #27ae60;
+    }
+
+    .portion-large {
+        background: #e3f2fd;
+        color: #2196f3;
+    }
+
+    .nutrition-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1rem;
+        margin-top: 1.5rem;
+    }
+
+    .nutrition-item {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 10px;
+        text-align: center;
+    }
+
+    .nutrition-value {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #667eea;
+    }
+
+    .nutrition-label {
+        font-size: 0.9rem;
+        color: #718096;
+        margin-top: 0.3rem;
+    }
+
+    .progress-bar-container {
+        background: #e2e8f0;
+        border-radius: 10px;
+        height: 25px;
+        margin-top: 0.5rem;
+        overflow: hidden;
+    }
+
+    .progress-bar {
+        height: 100%;
+        background: linear-gradient(90deg, #667eea, #764ba2);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 0.85rem;
+        font-weight: bold;
+        transition: width 0.5s;
+    }
+
+    .recommendations {
+        background: #fffbeb;
+        border-left: 4px solid #f59e0b;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-top: 1.5rem;
+    }
+
+    .recommendation-item {
+        margin: 0.5rem 0;
+        font-size: 1rem;
+    }
+
+    .spinner {
+        border: 4px solid #f3f4f6;
+        border-top: 4px solid #667eea;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        animation: spin 1s linear infinite;
+        margin: 2rem auto;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .btn-camera {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1rem 2rem;
+        border: none;
+        border-radius: 50px;
+        font-size: 1.1rem;
+        cursor: pointer;
+        transition: all 0.3s;
+        margin: 0.5rem;
+    }
+
+    .btn-camera:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(102, 126, 234, 0.3);
+    }
+
+    .supported-foods {
+        background: white;
+        border-radius: 15px;
+        padding: 2rem;
+        margin-top: 2rem;
+    }
+
+    .food-tag {
+        display: inline-block;
+        background: #f0f2ff;
+        color: #667eea;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        margin: 0.3rem;
+        font-size: 0.9rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="hero-section">
+    <div class="container">
+        <h1>📸 Food Image Recognition</h1>
+        <p>Take a photo of your child's meal - AI will analyze nutrition instantly!</p>
+    </div>
+</div>
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-6">
+            <!-- Upload Section -->
+            <div class="upload-zone" id="uploadZone">
+                <div class="upload-icon">📸</div>
+                <h3>Upload Food Image</h3>
+                <p>Click to select or drag and drop an image</p>
+                <input type="file" id="imageInput" accept="image/*" style="display: none;">
+                
+                <div style="margin-top: 1.5rem;">
+                    <button class="btn-camera" onclick="document.getElementById('imageInput').click()">
+                        📁 Choose Image
+                    </button>
+                    <button class="btn-camera" onclick="openCamera()">
+                        📷 Use Camera
+                    </button>
+                </div>
+            </div>
+
+            <!-- Camera Input (hidden) -->
+            <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display: none;">
+
+            <!-- Preview Section -->
+            <div id="previewSection" style="display: none;">
+                <img id="previewImage" class="preview-image" alt="Food preview">
+                <div style="text-align: center; margin-top: 1rem;">
+                    <button class="btn-camera" onclick="analyzeImage()">
+                        🔍 Analyze Food
+                    </button>
+                    <button class="btn-camera" style="background: #e53e3e;" onclick="clearImage()">
+                        ❌ Clear
+                    </button>
+                </div>
+            </div>
+
+            <!-- Loading Spinner -->
+            <div id="loadingSpinner" style="display: none;">
+                <div class="spinner"></div>
+                <p style="text-align: center;">Analyzing food image...</p>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <!-- Results Section -->
+            <div id="resultsSection" style="display: none;">
+                <div class="result-card">
+                    <div class="food-name" id="foodName"></div>
+                    <div>
+                        <span class="portion-badge" id="portionBadge"></span>
+                        <span id="portionWeight"></span>
+                    </div>
+
+                    <!-- Nutrition Grid -->
+                    <div class="nutrition-grid" id="nutritionGrid"></div>
+
+                    <!-- Daily Requirements Progress -->
+                    <div style="margin-top: 2rem;">
+                        <h4>Daily Requirements Met</h4>
+                        <div id="dailyProgress"></div>
+                    </div>
+
+                    <!-- Recommendations -->
+                    <div class="recommendations" id="recommendations"></div>
+                </div>
+
+                <!-- Raw Predictions (Collapsible) -->
+                <div class="result-card">
+                    <h4 style="cursor: pointer;" onclick="togglePredictions()">
+                        🤖 AI Predictions <small>(click to expand)</small>
+                    </h4>
+                    <div id="rawPredictions" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Supported Foods -->
+    <div class="supported-foods">
+        <h3>🍲 Supported Indian Foods</h3>
+        <p>Our AI can recognize these common Indian foods:</p>
+        <div id="supportedFoods">
+            <span class="food-tag">🍚 Rice</span>
+            <span class="food-tag">🫘 Ragi Ball</span>
+            <span class="food-tag">🥘 Dal (Lentils)</span>
+            <span class="food-tag">🥚 Egg</span>
+            <span class="food-tag">🍌 Banana</span>
+            <span class="food-tag">🫓 Chapati/Roti</span>
+            <span class="food-tag">🍗 Chicken Curry</span>
+            <span class="food-tag">🥛 Milk</span>
+            <span class="food-tag">🥣 Yogurt/Curd</span>
+            <span class="food-tag">🥗 Vegetable Curry</span>
+        </div>
+
+        <div style="margin-top: 2rem; padding: 1rem; background: #f0f9ff; border-radius: 10px;">
+            <h4>💡 Tips for Best Results</h4>
+            <ul>
+                <li>Take photos in good lighting</li>
+                <li>Center the food in the frame</li>
+                <li>Avoid cluttered backgrounds</li>
+                <li>Show the full plate or serving</li>
+                <li>Use clear, focused images</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+    let selectedFile = null;
+
+    // Upload zone interactions
+    const uploadZone = document.getElementById('uploadZone');
+    const imageInput = document.getElementById('imageInput');
+    const cameraInput = document.getElementById('cameraInput');
+
+    uploadZone.addEventListener('click', () => {
+        if (!document.getElementById('previewSection').style.display || 
+            document.getElementById('previewSection').style.display === 'none') {
+            imageInput.click();
+        }
+    });
+
+    // Drag and drop
+    uploadZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadZone.classList.add('dragover');
+    });
+
+    uploadZone.addEventListener('dragleave', () => {
+        uploadZone.classList.remove('dragover');
+    });
+
+    uploadZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadZone.classList.remove('dragover');
+        
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            handleFileSelect(files[0]);
+        }
+    });
+
+    // File input change
+    imageInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            handleFileSelect(e.target.files[0]);
+        }
+    });
+
+    cameraInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            handleFileSelect(e.target.files[0]);
+        }
+    });
+
+    function openCamera() {
+        cameraInput.click();
+    }
+
+    function handleFileSelect(file) {
+        // Validate file type
+        const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
+        if (!validTypes.includes(file.type)) {
+            alert('Please select a valid image file (PNG, JPG, GIF, WebP)');
+            return;
+        }
+
+        selectedFile = file;
+
+        // Show preview
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            document.getElementById('previewImage').src = e.target.result;
+            document.getElementById('uploadZone').style.display = 'none';
+            document.getElementById('previewSection').style.display = 'block';
+            document.getElementById('resultsSection').style.display = 'none';
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function clearImage() {
+        selectedFile = null;
+        document.getElementById('uploadZone').style.display = 'block';
+        document.getElementById('previewSection').style.display = 'none';
+        document.getElementById('resultsSection').style.display = 'none';
+        imageInput.value = '';
+        cameraInput.value = '';
+    }
+
+    async function analyzeImage() {
+        if (!selectedFile) {
+            alert('Please select an image first');
+            return;
+        }
+
+        // Show loading
+        document.getElementById('previewSection').style.display = 'none';
+        document.getElementById('loadingSpinner').style.display = 'block';
+        document.getElementById('resultsSection').style.display = 'none';
+
+        // Prepare form data
+        const formData = new FormData();
+        formData.append('image', selectedFile);
+
+        try {
+            const response = await fetch('/api/analyze-food-image', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            // Hide loading
+            document.getElementById('loadingSpinner').style.display = 'none';
+
+            if (data.success) {
+                displayResults(data);
+            } else {
+                alert('Error: ' + data.error);
+                document.getElementById('previewSection').style.display = 'block';
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Failed to analyze image. Please try again.');
+            document.getElementById('loadingSpinner').style.display = 'none';
+            document.getElementById('previewSection').style.display = 'block';
+        }
+    }
+
+    function displayResults(data) {
+        // Show results section
+        document.getElementById('resultsSection').style.display = 'block';
+
+        // Food name
+        document.getElementById('foodName').textContent = data.food_name;
+
+        // Portion size
+        const portionBadge = document.getElementById('portionBadge');
+        portionBadge.textContent = data.portion_size.toUpperCase();
+        portionBadge.className = 'portion-badge portion-' + data.portion_size;
+        
+        document.getElementById('portionWeight').textContent = 
+            `(${data.portion_weight}g) - ${data.portion_description}`;
+
+        // Nutrition grid
+        const nutritionGrid = document.getElementById('nutritionGrid');
+        nutritionGrid.innerHTML = '';
+        
+        const nutrients = [
+            { key: 'calories', label: 'Calories', unit: 'kcal' },
+            { key: 'protein', label: 'Protein', unit: 'g' },
+            { key: 'carbs', label: 'Carbs', unit: 'g' },
+            { key: 'fat', label: 'Fat', unit: 'g' },
+            { key: 'fiber', label: 'Fiber', unit: 'g' },
+            { key: 'iron', label: 'Iron', unit: 'mg' },
+            { key: 'calcium', label: 'Calcium', unit: 'mg' }
+        ];
+
+        nutrients.forEach(nutrient => {
+            const value = data.nutrition[nutrient.key];
+            nutritionGrid.innerHTML += `
+                <div class="nutrition-item">
+                    <div class="nutrition-value">${value}</div>
+                    <div class="nutrition-label">${nutrient.label} (${nutrient.unit})</div>
+                </div>
+            `;
+        });
+
+        // Daily requirements progress
+        const dailyProgress = document.getElementById('dailyProgress');
+        dailyProgress.innerHTML = '';
+        
+        const percentages = data.nutritional_assessment.daily_percentages;
+        const requirements = ['calories', 'protein', 'iron', 'calcium'];
+        
+        requirements.forEach(req => {
+            const percent = percentages[req];
+            dailyProgress.innerHTML += `
+                <div style="margin-bottom: 1rem;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.3rem;">
+                        <span>${req.charAt(0).toUpperCase() + req.slice(1)}</span>
+                        <span><strong>${percent}%</strong></span>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" style="width: ${Math.min(percent, 100)}%">
+                            ${percent}%
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        // Recommendations
+        const recommendations = document.getElementById('recommendations');
+        recommendations.innerHTML = '<h4>📋 Recommendations</h4>';
+        data.nutritional_assessment.recommendations.forEach(rec => {
+            recommendations.innerHTML += `<div class="recommendation-item">${rec}</div>`;
+        });
+
+        // Raw predictions
+        const rawPredictions = document.getElementById('rawPredictions');
+        rawPredictions.innerHTML = '';
+        data.raw_predictions.forEach((pred, index) => {
+            rawPredictions.innerHTML += `
+                <div style="padding: 0.5rem; background: ${index === 0 ? '#f0f9ff' : '#f9fafb'}; 
+                     margin: 0.3rem 0; border-radius: 5px;">
+                    ${index + 1}. <strong>${pred.name}</strong> 
+                    <span style="float: right;">${(pred.confidence * 100).toFixed(1)}%</span>
+                </div>
+            `;
+        });
+    }
+
+    function togglePredictions() {
+        const elem = document.getElementById('rawPredictions');
+        elem.style.display = elem.style.display === 'none' ? 'block' : 'none';
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,57 @@
+# Render ignore file - files to exclude from deployment
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+server_log.txt
+
+# Local development
+.env
+*.bat
+START_*.bat
+RUN_*.bat
+
+# Test files (optional - remove if you want to keep them)
+test_*.py
+check_*.py
+debug_*.py
+minimal_test.py
+
+# QR codes (will be regenerated)
+static/qr_codes/*.png
+
+# Large datasets
+datasets/
+*.csv
+*.xlsx
+
+# Documentation (optional - keep if needed)
+# *.md

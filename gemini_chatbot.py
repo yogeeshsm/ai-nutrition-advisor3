@@ -20,8 +20,8 @@ class NutritionChatbot:
         # Configure Gemini
         genai.configure(api_key=self.api_key)
         
-        # Initialize the model (using latest stable Gemini 2.0 Flash)
-        self.model = genai.GenerativeModel('gemini-2.0-flash')
+        # Initialize the model (using Gemini 1.5 Flash which has better quota)
+        self.model = genai.GenerativeModel('gemini-1.5-flash')
         
         # System context for nutrition expertise
         self.system_context = """You are an expert nutritionist and dietitian specializing in child nutrition for Anganwadi centers in India. 
@@ -80,7 +80,20 @@ Keep responses concise (2-3 paragraphs) unless asked for details."""
             return response.text
             
         except Exception as e:
-            return f"I apologize, but I encountered an error: {str(e)}. Please try rephrasing your question."
+            error_msg = str(e)
+            if "quota" in error_msg.lower() or "429" in error_msg:
+                return """🤖 **AI Chatbot Temporarily Unavailable**
+
+The AI service has reached its daily quota limit. However, I can still help you with:
+
+📊 **Nutrition Lookup** - Search food nutrition information
+📈 **Growth Tracking** - Monitor child growth and development  
+🍽️ **Meal Planning** - Create optimized meal plans
+💉 **Immunization Schedule** - Track vaccination records
+🎯 **ML Recommendations** - Get AI-powered food suggestions
+
+Please use the other features or try the chatbot again later. Thank you!"""
+            return f"I apologize, but I encountered an error: {error_msg}. Please try rephrasing your question."
     
     def get_meal_advice(self, meal_plan_data: Dict, concern: str) -> str:
         """
@@ -114,7 +127,10 @@ Provide:
             response = self.model.generate_content(f"{self.system_context}\n\n{prompt}")
             return response.text
         except Exception as e:
-            return f"Error analyzing meal plan: {str(e)}"
+            error_msg = str(e)
+            if "quota" in error_msg.lower() or "429" in error_msg:
+                return "AI analysis temporarily unavailable due to quota limits. Please try: (1) Using the Meal Optimizer tool directly, (2) Checking the ML Recommendations page, or (3) Trying again later."
+            return f"Error analyzing meal plan: {error_msg}"
     
     def suggest_alternatives(self, ingredient: str, reason: str = "general") -> str:
         """
@@ -144,7 +160,10 @@ Keep suggestions practical and affordable."""
             response = self.model.generate_content(f"{self.system_context}\n\n{prompt}")
             return response.text
         except Exception as e:
-            return f"Error suggesting alternatives: {str(e)}"
+            error_msg = str(e)
+            if "quota" in error_msg.lower() or "429" in error_msg:
+                return f"AI suggestions temporarily unavailable. Here are basic alternatives for {ingredient}: Check the Nutrition Lookup page for similar ingredients, or consult the ML Recommendations for data-driven suggestions."
+            return f"Error suggesting alternatives: {error_msg}"
     
     def answer_nutrition_question(self, question: str) -> str:
         """
