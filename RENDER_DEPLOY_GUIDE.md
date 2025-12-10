@@ -54,8 +54,8 @@ Click **"Advanced"** and add these environment variables:
 | `FLASK_ENV` | `production` | Production mode |
 | `DB_TYPE` | `sqlite` | Database type |
 | `SECRET_KEY` | `your-secret-key-here` | Generate random string |
-| `GEMINI_API_KEY` | `AIzaSyD9sGlU0yaxJjTmyEol7Kq5Xnsup02UxRc` | Your Gemini API key |
-| `USDA_API_KEY` | `bI8E0Icmi3gYlneZJ27MWK6ChaaUYBCn2Vv801NH` | Optional |
+| `GEMINI_API_KEY` | `your-gemini-api-key-here` | Get from [Google AI Studio](https://aistudio.google.com/app/apikey) |
+| `USDA_API_KEY` | `your-usda-api-key` | Optional - Get from [USDA FoodData Central](https://fdc.nal.usda.gov/api-key-signup.html) |
 | `DATA_GOV_API_KEY` | `579b464db66ec23bdd000001e3f853bd7199484e65326b922dbca7ce` | Optional |
 
 **🔐 Security Note**: Generate a strong SECRET_KEY:

@@ -29,9 +29,9 @@ PYTHON_VERSION=3.11.9
 FLASK_ENV=production
 DB_TYPE=sqlite
 SECRET_KEY=your-secret-key-here
-GEMINI_API_KEY=AIzaSyD9sGlU0yaxJjTmyEol7Kq5Xnsup02UxRc
-USDA_API_KEY=bI8E0Icmi3gYlneZJ27MWK6ChaaUYBCn2Vv801NH
-DATA_GOV_API_KEY=579b464db66ec23bdd000001e3f853bd7199484e65326b922dbca7ce
+GEMINI_API_KEY=your-gemini-api-key
+USDA_API_KEY=your-usda-api-key
+DATA_GOV_API_KEY=your-data-gov-api-key
 ```
 
 ### Step 5: Deploy! (30 seconds)

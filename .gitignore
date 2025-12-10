@@ -82,3 +82,8 @@ docs/_build/
 *.bak
 *.backup
 *~
+
+# Environment variables
+.env
+.env.local
+.env.*.local
