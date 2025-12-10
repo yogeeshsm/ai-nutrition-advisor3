@@ -23,6 +23,7 @@ from who_immunization import who_api
 
 # Try to import optional modules
 try:
+    # Use Gemini chatbot (stable with Python 3.13)
     from gemini_chatbot import get_chatbot
     CHATBOT_AVAILABLE = True
 except (Exception, KeyboardInterrupt, SystemExit) as e:
@@ -75,8 +76,16 @@ register_child_identity_routes(app)
 # Initialize translation service
 translation_service = get_translation_service()
 
-# Initialize chatbot
-chatbot = get_chatbot()
+# Initialize chatbot with provider from environment
+if CHATBOT_AVAILABLE:
+    try:
+        chatbot = get_chatbot()
+        print(f"✅ Chatbot initialized with gemini")
+    except Exception as e:
+        print(f"⚠️  Chatbot error: {e}")
+        chatbot = None
+else:
+    chatbot = None
 
 # Make translation functions available in templates
 @app.context_processor

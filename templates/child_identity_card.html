@@ -254,7 +254,9 @@ function loadChildren() {
                 data.children.forEach(child => {
                     const option = document.createElement('option');
                     option.value = child.id;
-                    option.textContent = child.name + (child.age ? ` (${child.age}y)` : '');
+                    const age = child.age_years || child.age || 'N/A';
+                    const weight = child.weight_kg ? `, ${child.weight_kg}kg` : '';
+                    option.textContent = `${child.name} (${age} years${weight})`;
                     select.appendChild(option);
                 });
             }
@@ -269,7 +271,8 @@ function loadChildInfo(childId) {
             if (data.success && data.child) {
                 const child = data.child;
                 document.getElementById('childName').textContent = child.name;
-                document.getElementById('childAge').textContent = (child.age || 'N/A') + ' years';
+                const age = child.age_years || child.age || 'N/A';
+                document.getElementById('childAge').textContent = age + ' years';
                 document.getElementById('childGender').textContent = child.gender || 'N/A';
                 document.getElementById('childVillage').textContent = child.village || 'N/A';
                 document.getElementById('childInfoBox').style.display = 'block';
