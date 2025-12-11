@@ -338,24 +338,37 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function loadChildren() {
+    const select = document.getElementById('childSelect');
+    select.innerHTML = '<option value="">Loading children...</option>';
+    
     fetch('/api/get-children')
         .then(res => res.json())
         .then(data => {
-            const select = document.getElementById('childSelect');
             select.innerHTML = '<option value="">-- Select a child --</option>';
             
             if (data.success && data.children) {
-                data.children.forEach(child => {
+                if (data.children.length === 0) {
                     const option = document.createElement('option');
-                    option.value = child.id;
-                    const age = child.age_years || child.age || 'N/A';
-                    const weight = child.weight_kg ? `, ${child.weight_kg}kg` : '';
-                    option.textContent = `${child.name} (${age} years${weight})`;
+                    option.text = "No children found - Add one first";
                     select.appendChild(option);
-                });
+                } else {
+                    data.children.forEach(child => {
+                        const option = document.createElement('option');
+                        option.value = child.id;
+                        const age = child.age_years || child.age || 'N/A';
+                        const weight = child.weight_kg ? `, ${child.weight_kg}kg` : '';
+                        option.textContent = `${child.name} (${age} years${weight})`;
+                        select.appendChild(option);
+                    });
+                }
+            } else {
+                select.innerHTML = '<option value="">Error loading children</option>';
             }
         })
-        .catch(err => console.error('Error loading children:', err));
+        .catch(err => {
+            console.error('Error loading children:', err);
+            select.innerHTML = '<option value="">Error loading children</option>';
+        });
 }
 
 function loadStats() {
