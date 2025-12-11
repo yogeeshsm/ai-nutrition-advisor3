@@ -124,15 +124,41 @@ def inject_translation():
 # Initialize database on startup
 db.initialize_database()
 
+# Ensure sample data exists (for production deployment)
+try:
+    from init_production_data import init_sample_children
+    init_sample_children()
+except Exception as e:
+    print(f"[WARNING] Could not initialize sample data: {e}")
+
 @app.route('/health')
 def health_check():
     """Health check endpoint for Render"""
-    return jsonify({
-        'status': 'healthy',
-        'service': 'AI Nutrition Advisor',
-        'features': '60+',
-        'timestamp': datetime.now().isoformat()
-    }), 200
+    try:
+        # Test database connection
+        conn = db.get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM children")
+        child_count = cursor.fetchone()[0]
+        cursor.close()
+        conn.close()
+        
+        return jsonify({
+            'status': 'healthy',
+            'service': 'AI Nutrition Advisor',
+            'features': '60+',
+            'database': 'connected',
+            'children_count': child_count,
+            'timestamp': datetime.now().isoformat()
+        }), 200
+    except Exception as e:
+        return jsonify({
+            'status': 'degraded',
+            'service': 'AI Nutrition Advisor',
+            'database': 'error',
+            'error': str(e),
+            'timestamp': datetime.now().isoformat()
+        }), 200
 
 @app.route('/')
 def index():
