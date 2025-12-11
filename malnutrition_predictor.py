@@ -1,6 +1,7 @@
 """
 Malnutrition Predictor using trained Random Forest model from CSV data
 Loads the model trained on real malnutrition data
+Auto-fallback to WHO z-score based predictor if models unavailable
 """
 
 import numpy as np
@@ -16,11 +17,13 @@ class MalnutritionPredictor:
         self.label_encoder = None
         self.metadata = None
         self.model_path = 'models/malnutrition/'
+        self.use_fallback = False
+        self.fallback_predictor = None
         
         self._load_trained_model()
     
     def _load_trained_model(self):
-        """Load the trained model from disk"""
+        """Load the trained model from disk, fallback to simple predictor if unavailable"""
         try:
             # Load main model
             model_file = os.path.join(self.model_path, 'trained_model.pkl')
@@ -42,10 +45,19 @@ class MalnutritionPredictor:
             print(f"   Classes: {self.metadata['classes']}")
             print(f"   Training date: {self.metadata['training_date']}")
             
-        except FileNotFoundError:
-            print("[ERROR] Trained model not found!")
-            print("   Please run: python train_malnutrition_model.py")
-            raise Exception("Model not trained. Run training script first.")
+        except (FileNotFoundError, Exception) as e:
+            print(f"[WARNING] Trained model not available: {e}")
+            print("[INFO] Using fallback predictor (WHO z-score based)")
+            self.use_fallback = True
+            
+            # Import and use fallback predictor
+            try:
+                from fallback_predictor import FallbackPredictor
+                self.fallback_predictor = FallbackPredictor()
+                self.metadata = self.fallback_predictor.metadata
+            except ImportError:
+                print("[ERROR] Fallback predictor not found!")
+                raise Exception("Neither trained model nor fallback predictor available")
     
     def calculate_bmi(self, weight_kg, height_cm):
         """Calculate BMI from weight and height"""
@@ -58,7 +70,7 @@ class MalnutritionPredictor:
         base_muac = 11.0 + (age_months * 0.05) + (weight_kg * 0.15)
         return np.clip(base_muac, 10.0, 20.0)
     
-    def predict(self, age_months, weight_kg, height_cm, muac_cm=None):
+    def predict(self, age_months, weight_kg, height_cm, muac_cm=None, gender='male'):
         """
         Predict malnutrition status
         
@@ -67,10 +79,18 @@ class MalnutritionPredictor:
             weight_kg: Weight in kilograms
             height_cm: Height in centimeters
             muac_cm: Mid-Upper Arm Circumference (optional, will be estimated)
+            gender: 'male' or 'female' (used in fallback mode)
         
         Returns:
             dict with prediction results
         """
+        # Use fallback predictor if trained model not available
+        if self.use_fallback:
+            return self.fallback_predictor.predict(
+                age_months, weight_kg, height_cm, muac_cm, gender
+            )
+        
+        # Use trained model
         # Calculate/estimate features
         bmi = self.calculate_bmi(weight_kg, height_cm)
         
@@ -125,13 +145,18 @@ class MalnutritionPredictor:
         Predict from child data dictionary (for API compatibility)
         
         Args:
-            child_data: Dict with age_months, weight_kg, height_cm
+            child_data: Dict with age_months, weight_kg, height_cm, gender
         """
+        # Use fallback predictor if trained model not available
+        if self.use_fallback:
+            return self.fallback_predictor.predict_from_child_data(child_data)
+        
         return self.predict(
             age_months=child_data.get('age_months'),
             weight_kg=child_data.get('weight_kg'),
             height_cm=child_data.get('height_cm'),
-            muac_cm=child_data.get('muac_cm')
+            muac_cm=child_data.get('muac_cm'),
+            gender=child_data.get('gender', 'male')
         )
 
 

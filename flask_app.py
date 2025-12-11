@@ -65,7 +65,7 @@ except (Exception, KeyboardInterrupt, SystemExit) as e:
     def register_child_identity_routes(app):
         pass
 
-# Import malnutrition predictor (trained Random Forest model)
+# Import malnutrition predictor (trained Random Forest model with fallback)
 try:
     import sys
     # Force reload to ensure we get the latest trained model
@@ -73,10 +73,18 @@ try:
         del sys.modules['malnutrition_predictor']
     from malnutrition_predictor import get_predictor
     MALNUTRITION_PREDICTOR = get_predictor()
-    print("[OK] Trained malnutrition model loaded successfully")
+    predictor_type = "fallback (WHO z-score)" if MALNUTRITION_PREDICTOR.use_fallback else "trained Random Forest"
+    print(f"[OK] Malnutrition predictor loaded successfully ({predictor_type})")
 except Exception as e:
-    print(f"[WARNING] Malnutrition predictor error: {e}")
-    MALNUTRITION_PREDICTOR = None
+    print(f"[ERROR] Malnutrition predictor failed to load: {e}")
+    print("[INFO] Attempting to use fallback predictor directly...")
+    try:
+        from fallback_predictor import FallbackPredictor
+        MALNUTRITION_PREDICTOR = FallbackPredictor()
+        print("[OK] Fallback predictor loaded successfully")
+    except Exception as e2:
+        print(f"[ERROR] Fallback predictor also failed: {e2}")
+        MALNUTRITION_PREDICTOR = None
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'nutrition-advisor-secret-key-2025')
@@ -1652,12 +1660,13 @@ def predict_malnutrition(child_id):
             print("[ERROR] Predictor is None at prediction time")
             return jsonify({'success': False, 'error': 'Predictor not loaded'}), 500
         
-        # Use new predictor method
-        print(f"[DEBUG] Calling predict with: age={child_data['age_months']}, weight={child_data['weight_kg']}, height={child_data['height_cm']}")
+        # Use new predictor method with gender
+        print(f"[DEBUG] Calling predict with: age={child_data['age_months']}, weight={child_data['weight_kg']}, height={child_data['height_cm']}, gender={child_data['gender']}")
         result = predictor.predict(
             age_months=child_data['age_months'],
             weight_kg=child_data['weight_kg'],
-            height_cm=child_data['height_cm']
+            height_cm=child_data['height_cm'],
+            gender=child_data['gender']
         )
         print(f"[DEBUG] Prediction result: {result}")
         
