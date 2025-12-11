@@ -7,7 +7,7 @@
 Go to your Render dashboard → Your service → Environment tab and add:
 
 ```
-GEMINI_API_KEY=AIzaSyBJARiL5ADGAJ9XhUzI_tAG5u724v6hbd4
+GEMINI_API_KEY=your_gemini_api_key_here
 DB_HOST=your_mysql_host
 DB_USER=your_mysql_user  
 DB_PASSWORD=your_mysql_password
@@ -34,7 +34,7 @@ SECRET_KEY=your_random_secret_key
 **Option A: Use environment variables (Recommended)**
 ```bash
 # In Render dashboard, set:
-GEMINI_API_KEY=AIzaSyBJARiL5ADGAJ9XhUzI_tAG5u724v6hbd4
+GEMINI_API_KEY=your_gemini_api_key_here
 ```
 
 **Option B: If model files are too large**

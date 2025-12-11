@@ -13,7 +13,7 @@ Build fails with: **"Exited with status 1"**
 4. Add:
 
 ```
-GEMINI_API_KEY = AIzaSyBJARiL5ADGAJ9XhUzI_tAG5u724v6hbd4
+GEMINI_API_KEY = your_gemini_api_key_here
 ```
 
 5. Click: **Save Changes**
