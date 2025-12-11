@@ -881,48 +881,74 @@ def api_get_children():
     """Get all children for Child Identity Card selection"""
     try:
         conn = db.get_connection()
-        cursor = conn.cursor()
+        # Use dictionary cursor for easier access
+        cursor = conn.cursor(dictionary=True)
         
+        # Get all children
         cursor.execute("""
             SELECT id, name, date_of_birth, gender, village
             FROM children
-            WHERE id != 1
             ORDER BY name ASC
         """)
         
+        children_rows = cursor.fetchall()
         children = []
-        for row in cursor.fetchall():
-            # Calculate age
-            from datetime import datetime
-            dob = datetime.strptime(row[2], '%Y-%m-%d')
-            age_years = (datetime.now() - dob).days // 365
+        
+        for row in children_rows:
+            # Calculate age safely
+            dob = row['date_of_birth']
+            today = datetime.now().date()
             
-            # Get latest weight from growth_tracking
-            cursor.execute("""
+            # Handle different date types
+            if isinstance(dob, datetime):
+                dob_date = dob.date()
+            elif isinstance(dob, str):
+                try:
+                    dob_date = datetime.strptime(dob, '%Y-%m-%d').date()
+                except ValueError:
+                    dob_date = today # Fallback
+            else:
+                dob_date = dob
+                
+            age_years = (today - dob_date).days // 365
+            
+            # Get latest weight
+            query = """
                 SELECT weight_kg 
                 FROM growth_tracking 
-                WHERE child_id = ? 
+                WHERE child_id = %s 
                 ORDER BY measurement_date DESC 
                 LIMIT 1
-            """, (row[0],))
+            """
+            
+            # Adjust placeholder for SQLite if needed
+            if db.DB_TYPE != 'mysql':
+                 query = query.replace('%s', '?')
+            
+            cursor.execute(query, (row['id'],))
             
             weight_row = cursor.fetchone()
-            weight_kg = weight_row[0] if weight_row else 0.0
+            weight_kg = float(weight_row['weight_kg']) if weight_row else 0.0
             
             children.append({
-                'id': row[0],
-                'name': row[1],
-                'date_of_birth': row[2],
-                'gender': row[3],
-                'village': row[4] if row[4] else 'N/A',
+                'id': row['id'],
+                'name': row['name'],
+                'date_of_birth': str(dob_date),
+                'gender': row['gender'],
+                'village': row['village'] if row['village'] else 'N/A',
                 'age': age_years,
                 'age_years': age_years,
                 'weight_kg': weight_kg
             })
         
+        cursor.close()
         conn.close()
         
         return jsonify({'success': True, 'children': children})
+        
+    except Exception as e:
+        print(f"Error getting children: {e}")
+        return jsonify({'success': False, 'error': str(e)})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
