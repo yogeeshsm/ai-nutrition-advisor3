@@ -9,6 +9,7 @@ from datetime import datetime
 import io
 import pandas as pd
 import os
+import sqlite3
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -920,8 +921,7 @@ def api_get_children():
     """Get all children for Child Identity Card selection"""
     try:
         conn = db.get_connection()
-        # Use dictionary cursor for easier access
-        cursor = conn.cursor(dictionary=True)
+        cursor, placeholder = db.get_cursor(conn)
         
         # Get all children
         cursor.execute("""
@@ -934,8 +934,11 @@ def api_get_children():
         children = []
         
         for row in children_rows:
+            # Convert to dict
+            row_dict = db.dict_from_row(row)
+            
             # Calculate age safely
-            dob = row['date_of_birth']
+            dob = row_dict['date_of_birth']
             today = datetime.now().date()
             
             # Handle different date types
@@ -952,29 +955,25 @@ def api_get_children():
             age_years = (today - dob_date).days // 365
             
             # Get latest weight
-            query = """
+            query = f"""
                 SELECT weight_kg 
                 FROM growth_tracking 
-                WHERE child_id = %s 
+                WHERE child_id = {placeholder} 
                 ORDER BY measurement_date DESC 
                 LIMIT 1
             """
             
-            # Adjust placeholder for SQLite if needed
-            if db.DB_TYPE != 'mysql':
-                 query = query.replace('%s', '?')
-            
-            cursor.execute(query, (row['id'],))
-            
+            cursor.execute(query, (row_dict['id'],))
             weight_row = cursor.fetchone()
-            weight_kg = float(weight_row['weight_kg']) if weight_row else 0.0
+            weight_dict = db.dict_from_row(weight_row)
+            weight_kg = float(weight_dict['weight_kg']) if weight_dict else 0.0
             
             children.append({
-                'id': row['id'],
-                'name': row['name'],
+                'id': row_dict['id'],
+                'name': row_dict['name'],
                 'date_of_birth': str(dob_date),
-                'gender': row['gender'],
-                'village': row['village'] if row['village'] else 'N/A',
+                'gender': row_dict['gender'],
+                'village': row_dict['village'] if row_dict['village'] else 'N/A',
                 'age': age_years,
                 'age_years': age_years,
                 'weight_kg': weight_kg
@@ -987,8 +986,8 @@ def api_get_children():
         
     except Exception as e:
         print(f"Error getting children: {e}")
-        return jsonify({'success': False, 'error': str(e)})
-    except Exception as e:
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/get-child/<int:child_id>', methods=['GET'])
@@ -1522,40 +1521,63 @@ def predict_malnutrition(child_id):
         
         # Get child data
         conn = db.get_connection()
-        cursor = conn.cursor(dictionary=True)
+        cursor, placeholder = db.get_cursor(conn)
         
-        cursor.execute("""
+        query1 = f"""
             SELECT id, name, date_of_birth, gender, village
-            FROM children WHERE id = %s
-        """, (child_id,))
-        child = cursor.fetchone()
+            FROM children WHERE id = {placeholder}
+        """
+        cursor.execute(query1, (child_id,))
+        child_row = cursor.fetchone()
         
-        if not child:
+        if not child_row:
+            cursor.close()
+            conn.close()
             return jsonify({'success': False, 'error': 'Child not found'}), 404
         
+        # Convert to dict
+        child = db.dict_from_row(child_row)
+        
         # Get latest growth data
-        cursor.execute("""
+        query2 = f"""
             SELECT weight_kg, height_cm, measurement_date as measured_date
             FROM growth_tracking
-            WHERE child_id = %s
+            WHERE child_id = {placeholder}
             ORDER BY measurement_date DESC
             LIMIT 1
-        """, (child_id,))
-        latest_growth = cursor.fetchone()
+        """
+        cursor.execute(query2, (child_id,))
+        growth_row = cursor.fetchone()
         
-        if not latest_growth:
+        if not growth_row:
+            cursor.close()
+            conn.close()
             return jsonify({'success': False, 'error': 'No growth data available'}), 404
         
-        # Get growth history (last 6 months)
-        cursor.execute("""
-            SELECT weight_kg as weight, height_cm as height, measurement_date as measured_date,
-                   TIMESTAMPDIFF(MONTH, %s, measurement_date) as age_months
-            FROM growth_tracking
-            WHERE child_id = %s
-            AND measurement_date >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
-            ORDER BY measurement_date ASC
-        """, (child['date_of_birth'], child_id))
-        growth_history = cursor.fetchall()
+        # Convert to dict
+        latest_growth = db.dict_from_row(growth_row)
+        
+        # Get growth history (for display, not used in prediction)
+        if db.DB_TYPE == 'mysql':
+            query3 = f"""
+                SELECT weight_kg as weight, height_cm as height, measurement_date as measured_date
+                FROM growth_tracking
+                WHERE child_id = {placeholder}
+                AND measurement_date >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
+                ORDER BY measurement_date ASC
+            """
+        else:
+            query3 = f"""
+                SELECT weight_kg as weight, height_cm as height, measurement_date as measured_date
+                FROM growth_tracking
+                WHERE child_id = {placeholder}
+                AND measurement_date >= date('now', '-6 months')
+                ORDER BY measurement_date ASC
+            """
+        
+        cursor.execute(query3, (child_id,))
+        growth_history_rows = cursor.fetchall()
+        growth_history = [db.dict_from_row(row) for row in growth_history_rows]
         
         # Calculate age in months
         dob = child['date_of_birth']

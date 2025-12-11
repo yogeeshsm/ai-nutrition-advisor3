@@ -10,7 +10,11 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Database type: 'sqlite' or 'mysql'
-DB_TYPE = os.environ.get('DB_TYPE', 'sqlite')
+# Auto-detect: Use MySQL if credentials provided, else SQLite
+_mysql_host = os.environ.get('MYSQL_HOST', os.environ.get('DB_HOST', ''))
+_has_mysql_creds = bool(_mysql_host and _mysql_host not in ['localhost', '127.0.0.1', ''])
+
+DB_TYPE = os.environ.get('DB_TYPE', 'mysql' if _has_mysql_creds else 'sqlite')
 
 # SQLite Configuration
 SQLITE_DB_PATH = "nutrition_advisor.db"

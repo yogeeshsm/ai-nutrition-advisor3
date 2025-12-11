@@ -23,52 +23,58 @@ DATABASE_PATH = SQLITE_DB_PATH  # Keep for backward compatibility
 # MySQL connection pool
 _mysql_pool = None
 
-def _get_mysql_pool():
-    """Get or create MySQL connection pool"""
-    global _mysql_pool
-    if _mysql_pool is None:
-        try:
-            from mysql.connector import pooling
-            _mysql_pool = pooling.MySQLConnectionPool(**MYSQL_CONFIG)
-        except Exception as e:
-            print(f"Warning: Could not create connection pool: {e}")
-            _mysql_pool = False  # Mark as failed
-    return _mysql_pool if _mysql_pool else None
-
 def get_connection():
-    """Create and return a database connection (SQLite or MySQL)"""
+    """Create and return a database connection (SQLite or MySQL with automatic fallback)"""
+    global DB_TYPE
+    
     if DB_TYPE == 'mysql':
         if not MYSQL_AVAILABLE:
-            raise ImportError("MySQL connector not installed. Run: pip install mysql-connector-python")
+            print("[WARNING] MySQL connector not installed, falling back to SQLite")
+            DB_TYPE = 'sqlite'
+            return sqlite3.connect(SQLITE_DB_PATH, check_same_thread=False, timeout=10)
         
-        # Try to use connection pool first
-        pool = _get_mysql_pool()
-        if pool:
-            try:
-                conn = pool.get_connection()
-                # Test connection
-                conn.ping(reconnect=True, attempts=3, delay=1)
-                return conn
-            except Exception as e:
-                print(f"Pool connection failed: {e}, trying direct connection")
-        
-        # Fallback to direct connection
+        # Direct connection (skip pooling for faster startup)
         try:
-            config = MYSQL_CONFIG.copy()
-            # Remove pool-specific keys for direct connection
-            config.pop('pool_name', None)
-            config.pop('pool_size', None)
-            config.pop('pool_reset_session', None)
+            config = {
+                'host': MYSQL_CONFIG['host'],
+                'port': MYSQL_CONFIG['port'],
+                'user': MYSQL_CONFIG['user'],
+                'password': MYSQL_CONFIG['password'],
+                'database': MYSQL_CONFIG['database'],
+                'charset': MYSQL_CONFIG['charset'],
+                'use_unicode': MYSQL_CONFIG['use_unicode'],
+                'connect_timeout': 10
+            }
             
             conn = mysql.connector.connect(**config)
             conn.ping(reconnect=True)
+            print("[OK] MySQL connected successfully")
             return conn
         except MySQLError as e:
-            raise Exception(f"MySQL connection failed: {e}")
+            print(f"[WARNING] MySQL connection failed: {e}, falling back to SQLite")
+            DB_TYPE = 'sqlite'
+            return sqlite3.connect(SQLITE_DB_PATH, check_same_thread=False, timeout=10)
     else:
         # Default to SQLite
         conn = sqlite3.connect(SQLITE_DB_PATH, check_same_thread=False, timeout=10)
         return conn
+
+def get_cursor(conn):
+    """Get appropriate cursor based on database type"""
+    if DB_TYPE == 'mysql':
+        return conn.cursor(dictionary=True), '%s'
+    else:
+        cursor = conn.cursor()
+        cursor.row_factory = sqlite3.Row
+        return cursor, '?'
+
+def dict_from_row(row):
+    """Convert database row to dict (works for both SQLite Row and MySQL dict)"""
+    if row is None:
+        return None
+    if isinstance(row, dict):
+        return row
+    return dict(row)
 
 def get_sql_type(datatype):
     """Convert SQL datatypes between SQLite and MySQL"""
