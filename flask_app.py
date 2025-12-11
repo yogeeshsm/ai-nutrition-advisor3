@@ -1519,7 +1519,15 @@ def get_malnutrition_stats():
         }
         
         for child in children:
-            age_months = int(((datetime.now() - child['date_of_birth']).days / 30.44))
+            # Calculate age safely
+            dob = child['date_of_birth']
+            today = datetime.now().date()
+            if isinstance(dob, datetime):
+                dob_date = dob.date()
+            else:
+                dob_date = dob
+            
+            age_months = int(((today - dob_date).days / 30.44))
             
             child_data = {
                 'age_months': age_months,
