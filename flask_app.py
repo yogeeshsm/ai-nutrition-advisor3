@@ -1376,6 +1376,202 @@ def get_ml_child_profile(child_id):
         }), 500
 
 
+# ==================== MALNUTRITION PREDICTION ROUTES ====================
+
+@app.route('/malnutrition-prediction')
+def malnutrition_prediction_page():
+    """Malnutrition Risk Prediction page"""
+    return render_template('malnutrition_prediction.html')
+
+@app.route('/api/predict-malnutrition/<int:child_id>', methods=['POST'])
+def predict_malnutrition(child_id):
+    """Predict malnutrition risk for a child"""
+    try:
+        from malnutrition_predictor import get_predictor
+        
+        # Get child data
+        conn = db.get_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        cursor.execute("""
+            SELECT id, name, date_of_birth, gender, village
+            FROM children WHERE id = %s
+        """, (child_id,))
+        child = cursor.fetchone()
+        
+        if not child:
+            return jsonify({'success': False, 'error': 'Child not found'}), 404
+        
+        # Get latest growth data
+        cursor.execute("""
+            SELECT weight_kg, height_cm, measurement_date as measured_date
+            FROM growth_tracking
+            WHERE child_id = %s
+            ORDER BY measurement_date DESC
+            LIMIT 1
+        """, (child_id,))
+        latest_growth = cursor.fetchone()
+        
+        if not latest_growth:
+            return jsonify({'success': False, 'error': 'No growth data available'}), 404
+        
+        # Get growth history (last 6 months)
+        cursor.execute("""
+            SELECT weight_kg as weight, height_cm as height, measurement_date as measured_date,
+                   TIMESTAMPDIFF(MONTH, %s, measurement_date) as age_months
+            FROM growth_tracking
+            WHERE child_id = %s
+            AND measurement_date >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
+            ORDER BY measurement_date ASC
+        """, (child['date_of_birth'], child_id))
+        growth_history = cursor.fetchall()
+        
+        # Calculate age in months
+        dob = child['date_of_birth']
+        # Convert date to datetime if needed
+        if hasattr(dob, 'date'):
+            dob_date = dob
+        else:
+            dob_date = dob
+            
+        # Ensure both are dates for subtraction
+        today = datetime.now().date()
+        if isinstance(dob, datetime):
+            dob_date = dob.date()
+        else:
+            dob_date = dob
+            
+        age_months = ((today - dob_date).days / 30.44)
+        
+        # Get additional data from request
+        request_data = request.json or {}
+        
+        # Prepare child data
+        child_data = {
+            'age_months': int(age_months),
+            'weight_kg': float(latest_growth['weight_kg']),
+            'height_cm': float(latest_growth['height_cm']),
+            'gender': child['gender'],
+            'meals_per_day': request_data.get('meals_per_day', 3),
+            'milk_intake_ml': request_data.get('milk_intake_ml', 500),
+            'protein_servings': request_data.get('protein_servings', 2),
+            'vegetable_servings': request_data.get('vegetable_servings', 2),
+            'illness_days_last_month': request_data.get('illness_days_last_month', 0),
+            'diarrhea_recent': request_data.get('diarrhea_recent', False),
+            'fever_recent': request_data.get('fever_recent', False)
+        }
+        
+        # Get predictor and make prediction
+        predictor = get_predictor()
+        result = predictor.predict_risk(child_data, growth_history)
+        
+        cursor.close()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'child': {
+                'id': child['id'],
+                'name': child['name'],
+                'age_months': int(age_months),
+                'gender': child['gender']
+            },
+            'prediction': result
+        })
+        
+    except Exception as e:
+        print(f"Error predicting malnutrition: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/malnutrition-stats', methods=['GET'])
+def get_malnutrition_stats():
+    """Get malnutrition statistics for all children"""
+    try:
+        from malnutrition_predictor import get_predictor
+        
+        conn = db.get_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # Get all children with growth data
+        cursor.execute("""
+            SELECT c.id, c.name, c.date_of_birth, c.gender,
+                   g.weight_kg, g.height_cm
+            FROM children c
+            JOIN growth_tracking g ON c.id = g.child_id
+            WHERE g.id = (
+                SELECT MAX(id) FROM growth_tracking WHERE child_id = c.id
+            )
+        """)
+        children = cursor.fetchall()
+        
+        predictor = get_predictor()
+        stats = {
+            'total_children': len(children),
+            'high_risk': 0,
+            'medium_risk': 0,
+            'low_risk': 0,
+            'underweight_cases': 0,
+            'stunting_cases': 0,
+            'wasting_cases': 0,
+            'children_at_risk': []
+        }
+        
+        for child in children:
+            age_months = int(((datetime.now() - child['date_of_birth']).days / 30.44))
+            
+            child_data = {
+                'age_months': age_months,
+                'weight_kg': float(child['weight_kg']),
+                'height_cm': float(child['height_cm']),
+                'gender': child['gender'],
+                'meals_per_day': 3,
+                'milk_intake_ml': 500,
+                'protein_servings': 2,
+                'vegetable_servings': 2,
+                'illness_days_last_month': 0,
+                'diarrhea_recent': False,
+                'fever_recent': False
+            }
+            
+            result = predictor.predict_risk(child_data)
+            risk_level = result['overall_risk']
+            
+            if risk_level == 'high' or risk_level == 'critical':
+                stats['high_risk'] += 1
+                stats['children_at_risk'].append({
+                    'id': child['id'],
+                    'name': child['name'],
+                    'risk_level': risk_level,
+                    'predictions': result['predictions']
+                })
+            elif risk_level == 'medium':
+                stats['medium_risk'] += 1
+            else:
+                stats['low_risk'] += 1
+            
+            # Count specific conditions
+            if result['predictions'].get('underweight', {}).get('current_status'):
+                stats['underweight_cases'] += 1
+            if result['predictions'].get('stunting', {}).get('current_status'):
+                stats['stunting_cases'] += 1
+            if result['predictions'].get('wasting', {}).get('current_status'):
+                stats['wasting_cases'] += 1
+        
+        cursor.close()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'stats': stats
+        })
+        
+    except Exception as e:
+        print(f"Error getting malnutrition stats: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 if __name__ == '__main__':
     import os
     port = int(os.environ.get('PORT', 5000))
@@ -1394,3 +1590,4 @@ if __name__ == '__main__':
         # Fallback to Flask development server
         print("Waitress not available, using Flask dev server")
         app.run(debug=False, host='0.0.0.0', port=port, threaded=True)
+

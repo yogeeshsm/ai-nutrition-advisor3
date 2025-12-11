@@ -1,0 +1,528 @@
+{% extends "base.html" %}
+
+{% block title %}Malnutrition Risk Prediction - AI Nutrition Advisor{% endblock %}
+
+{% block extra_css %}
+<style>
+    .risk-badge {
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 14px;
+        display: inline-block;
+    }
+    .risk-critical { background: #dc3545; color: white; }
+    .risk-high { background: #ff6b6b; color: white; }
+    .risk-medium { background: #ffa500; color: white; }
+    .risk-low { background: #28a745; color: white; }
+    
+    .prediction-card {
+        border-left: 4px solid #6c5ce7;
+        transition: transform 0.2s;
+    }
+    .prediction-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    .zscore-meter {
+        height: 30px;
+        background: linear-gradient(to right, #dc3545 0%, #ffc107 50%, #28a745 100%);
+        border-radius: 15px;
+        position: relative;
+        margin: 10px 0;
+    }
+    
+    .zscore-indicator {
+        position: absolute;
+        width: 4px;
+        height: 40px;
+        background: #000;
+        top: -5px;
+        transform: translateX(-50%);
+    }
+    
+    .recommendation-item {
+        padding: 15px;
+        border-left: 3px solid #6c5ce7;
+        margin-bottom: 10px;
+        background: #f8f9fa;
+        border-radius: 5px;
+    }
+    
+    .priority-critical { border-left-color: #dc3545; }
+    .priority-high { border-left-color: #ff6b6b; }
+    .priority-medium { border-left-color: #ffa500; }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-bottom: 30px;
+    }
+    
+    .stat-card {
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+        color: white;
+    }
+    
+    .stat-number {
+        font-size: 2.5em;
+        font-weight: bold;
+        margin: 10px 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm mb-4" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <div class="card-body text-white">
+                    <h2 class="mb-2">🤖 Malnutrition Risk Prediction</h2>
+                    <p class="mb-0">AI-powered early warning system using Random Forest ML Model</p>
+                    <small>Predicts risks of Underweight, Stunting, and Wasting before they occur</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Dashboard -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h4 class="mb-3">📊 Risk Overview</h4>
+            <div class="stats-grid" id="statsGrid">
+                <div class="stat-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <div>Total Children</div>
+                    <div class="stat-number" id="totalChildren">-</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                    <div>High Risk</div>
+                    <div class="stat-number" id="highRisk">-</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+                    <div>Medium Risk</div>
+                    <div class="stat-number" id="mediumRisk">-</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);">
+                    <div>Low Risk</div>
+                    <div class="stat-number" id="lowRisk">-</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Prediction Form -->
+    <div class="row">
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">🎯 Predict Malnutrition Risk</h5>
+                </div>
+                <div class="card-body">
+                    <form id="predictionForm">
+                        <div class="mb-3">
+                            <label class="form-label">Select Child *</label>
+                            <select class="form-select" id="childSelect" required>
+                                <option value="">-- Select a child --</option>
+                            </select>
+                        </div>
+
+                        <h6 class="mt-4 mb-3">📋 Dietary Information</h6>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Meals per day</label>
+                            <input type="number" class="form-control" id="mealsPerDay" 
+                                   value="3" min="1" max="10" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Milk intake (ml/day)</label>
+                            <input type="number" class="form-control" id="milkIntake" 
+                                   value="500" min="0" max="1500" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Protein servings/day</label>
+                            <input type="number" class="form-control" id="proteinServings" 
+                                   value="2" min="0" max="5" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Vegetable servings/day</label>
+                            <input type="number" class="form-control" id="vegetableServings" 
+                                   value="2" min="0" max="10" required>
+                        </div>
+
+                        <h6 class="mt-4 mb-3">🏥 Health Information</h6>
+
+                        <div class="mb-3">
+                            <label class="form-label">Illness days (last month)</label>
+                            <input type="number" class="form-control" id="illnessDays" 
+                                   value="0" min="0" max="31" required>
+                        </div>
+
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="diarrheaRecent">
+                            <label class="form-check-label" for="diarrheaRecent">
+                                Recent diarrhea (last 2 weeks)
+                            </label>
+                        </div>
+
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="feverRecent">
+                            <label class="form-check-label" for="feverRecent">
+                                Recent fever (last 2 weeks)
+                            </label>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-cpu"></i> Predict Risk
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Prediction Results -->
+        <div class="col-lg-8 mb-4">
+            <div id="resultsSection" style="display: none;">
+                <!-- Child Info -->
+                <div class="card shadow-sm mb-3">
+                    <div class="card-body">
+                        <h5 class="mb-3">👶 Child Information</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Name:</strong> <span id="childName">-</span></p>
+                                <p><strong>Age:</strong> <span id="childAge">-</span> months</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Gender:</strong> <span id="childGender">-</span></p>
+                                <p><strong>Overall Risk:</strong> <span id="overallRisk"></span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Predictions -->
+                <div class="row mb-3">
+                    <!-- Underweight -->
+                    <div class="col-md-4 mb-3">
+                        <div class="card prediction-card shadow-sm h-100">
+                            <div class="card-body">
+                                <h6 class="text-primary mb-3">⚖️ Underweight Risk</h6>
+                                <div class="text-center mb-3">
+                                    <span id="underweightRisk" class="risk-badge">-</span>
+                                    <p class="mt-2 mb-1"><small>Probability:</small></p>
+                                    <h4 id="underweightProb">-</h4>
+                                </div>
+                                <p class="mb-1"><small>Current Status:</small></p>
+                                <p id="underweightStatus" class="mb-2"><strong>-</strong></p>
+                                <p class="mb-1"><small>Z-Score (Weight-for-Age):</small></p>
+                                <div class="zscore-meter">
+                                    <div id="underweightZscoreIndicator" class="zscore-indicator"></div>
+                                </div>
+                                <p class="text-center" id="underweightZscore"><strong>-</strong></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Stunting -->
+                    <div class="col-md-4 mb-3">
+                        <div class="card prediction-card shadow-sm h-100">
+                            <div class="card-body">
+                                <h6 class="text-warning mb-3">📏 Stunting Risk</h6>
+                                <div class="text-center mb-3">
+                                    <span id="stuntingRisk" class="risk-badge">-</span>
+                                    <p class="mt-2 mb-1"><small>Probability:</small></p>
+                                    <h4 id="stuntingProb">-</h4>
+                                </div>
+                                <p class="mb-1"><small>Current Status:</small></p>
+                                <p id="stuntingStatus" class="mb-2"><strong>-</strong></p>
+                                <p class="mb-1"><small>Z-Score (Height-for-Age):</small></p>
+                                <div class="zscore-meter">
+                                    <div id="stuntingZscoreIndicator" class="zscore-indicator"></div>
+                                </div>
+                                <p class="text-center" id="stuntingZscore"><strong>-</strong></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Wasting -->
+                    <div class="col-md-4 mb-3">
+                        <div class="card prediction-card shadow-sm h-100">
+                            <div class="card-body">
+                                <h6 class="text-danger mb-3">⚠️ Wasting Risk</h6>
+                                <div class="text-center mb-3">
+                                    <span id="wastingRisk" class="risk-badge">-</span>
+                                    <p class="mt-2 mb-1"><small>Probability:</small></p>
+                                    <h4 id="wastingProb">-</h4>
+                                </div>
+                                <p class="mb-1"><small>Current Status:</small></p>
+                                <p id="wastingStatus" class="mb-2"><strong>-</strong></p>
+                                <p class="mb-1"><small>Z-Score (Weight-for-Height):</small></p>
+                                <div class="zscore-meter">
+                                    <div id="wastingZscoreIndicator" class="zscore-indicator"></div>
+                                </div>
+                                <p class="text-center" id="wastingZscore"><strong>-</strong></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recommendations -->
+                <div class="card shadow-sm">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">💡 Personalized Recommendations</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="recommendationsSection">
+                            <p class="text-muted">Recommendations will appear here after prediction.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Initial Message -->
+            <div id="initialMessage" class="card shadow-sm">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-cpu-fill text-primary" style="font-size: 4em;"></i>
+                    <h4 class="mt-3">Select a child and predict malnutrition risk</h4>
+                    <p class="text-muted">Our AI model uses Random Forest Classifier to predict risks before they occur</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Children at Risk Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">⚠️ Children At Risk</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="atRiskTable">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Risk Level</th>
+                                    <th>Underweight</th>
+                                    <th>Stunting</th>
+                                    <th>Wasting</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="atRiskTableBody">
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted">Loading...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Load children on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadChildren();
+    loadStats();
+});
+
+function loadChildren() {
+    fetch('/api/get-children')
+        .then(res => res.json())
+        .then(data => {
+            const select = document.getElementById('childSelect');
+            select.innerHTML = '<option value="">-- Select a child --</option>';
+            
+            if (data.success && data.children) {
+                data.children.forEach(child => {
+                    const option = document.createElement('option');
+                    option.value = child.id;
+                    const age = child.age_years || child.age || 'N/A';
+                    const weight = child.weight_kg ? `, ${child.weight_kg}kg` : '';
+                    option.textContent = `${child.name} (${age} years${weight})`;
+                    select.appendChild(option);
+                });
+            }
+        })
+        .catch(err => console.error('Error loading children:', err));
+}
+
+function loadStats() {
+    fetch('/api/malnutrition-stats')
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                const stats = data.stats;
+                document.getElementById('totalChildren').textContent = stats.total_children;
+                document.getElementById('highRisk').textContent = stats.high_risk;
+                document.getElementById('mediumRisk').textContent = stats.medium_risk;
+                document.getElementById('lowRisk').textContent = stats.low_risk;
+                
+                // Populate at-risk table
+                const tbody = document.getElementById('atRiskTableBody');
+                tbody.innerHTML = '';
+                
+                if (stats.children_at_risk.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-success">✅ No children at high risk</td></tr>';
+                } else {
+                    stats.children_at_risk.forEach(child => {
+                        const row = tbody.insertRow();
+                        row.innerHTML = `
+                            <td>${child.name}</td>
+                            <td><span class="risk-badge risk-${child.risk_level}">${child.risk_level.toUpperCase()}</span></td>
+                            <td>${getRiskBadge(child.predictions.underweight?.risk_level)}</td>
+                            <td>${getRiskBadge(child.predictions.stunting?.risk_level)}</td>
+                            <td>${getRiskBadge(child.predictions.wasting?.risk_level)}</td>
+                            <td><button class="btn btn-sm btn-primary" onclick="selectChild(${child.id})">View Details</button></td>
+                        `;
+                    });
+                }
+            }
+        })
+        .catch(err => console.error('Error loading stats:', err));
+}
+
+function getRiskBadge(level) {
+    if (!level) return '-';
+    return `<span class="risk-badge risk-${level}">${level.toUpperCase()}</span>`;
+}
+
+function selectChild(childId) {
+    document.getElementById('childSelect').value = childId;
+    document.getElementById('predictionForm').dispatchEvent(new Event('submit'));
+}
+
+// Form submission
+document.getElementById('predictionForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const childId = document.getElementById('childSelect').value;
+    if (!childId) {
+        alert('Please select a child');
+        return;
+    }
+    
+    const requestData = {
+        meals_per_day: parseInt(document.getElementById('mealsPerDay').value),
+        milk_intake_ml: parseInt(document.getElementById('milkIntake').value),
+        protein_servings: parseInt(document.getElementById('proteinServings').value),
+        vegetable_servings: parseInt(document.getElementById('vegetableServings').value),
+        illness_days_last_month: parseInt(document.getElementById('illnessDays').value),
+        diarrhea_recent: document.getElementById('diarrheaRecent').checked,
+        fever_recent: document.getElementById('feverRecent').checked
+    };
+    
+    fetch(`/api/predict-malnutrition/${childId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestData)
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            displayResults(data);
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(err => {
+        console.error('Error:', err);
+        alert('Failed to get prediction');
+    });
+});
+
+function displayResults(data) {
+    // Show results section
+    document.getElementById('resultsSection').style.display = 'block';
+    document.getElementById('initialMessage').style.display = 'none';
+    
+    // Child info
+    document.getElementById('childName').textContent = data.child.name;
+    document.getElementById('childAge').textContent = data.child.age_months;
+    document.getElementById('childGender').textContent = data.child.gender;
+    
+    const overallRisk = data.prediction.overall_risk;
+    document.getElementById('overallRisk').innerHTML = 
+        `<span class="risk-badge risk-${overallRisk}">${overallRisk.toUpperCase()}</span>`;
+    
+    // Underweight
+    const underweight = data.prediction.predictions.underweight;
+    displayPrediction('underweight', underweight);
+    
+    // Stunting
+    const stunting = data.prediction.predictions.stunting;
+    displayPrediction('stunting', stunting);
+    
+    // Wasting
+    const wasting = data.prediction.predictions.wasting;
+    displayPrediction('wasting', wasting);
+    
+    // Recommendations
+    displayRecommendations(data.prediction.recommendations);
+}
+
+function displayPrediction(type, pred) {
+    const riskEl = document.getElementById(`${type}Risk`);
+    const probEl = document.getElementById(`${type}Prob`);
+    const statusEl = document.getElementById(`${type}Status`);
+    const zscoreEl = document.getElementById(`${type}Zscore`);
+    const indicatorEl = document.getElementById(`${type}ZscoreIndicator`);
+    
+    riskEl.className = `risk-badge risk-${pred.risk_level}`;
+    riskEl.textContent = pred.risk_level.toUpperCase();
+    probEl.textContent = (pred.probability * 100).toFixed(1) + '%';
+    statusEl.textContent = pred.current_status ? '❌ Currently affected' : '✅ Normal';
+    statusEl.className = pred.current_status ? 'text-danger' : 'text-success';
+    zscoreEl.textContent = pred.zscore.toFixed(2);
+    
+    // Position z-score indicator (map -3 to 0% and +3 to 100%)
+    const position = ((pred.zscore + 3) / 6) * 100;
+    indicatorEl.style.left = Math.max(0, Math.min(100, position)) + '%';
+}
+
+function displayRecommendations(recommendations) {
+    const container = document.getElementById('recommendationsSection');
+    container.innerHTML = '';
+    
+    if (recommendations.length === 0) {
+        container.innerHTML = '<p class="text-success">✅ No special interventions needed at this time</p>';
+        return;
+    }
+    
+    recommendations.forEach(rec => {
+        const div = document.createElement('div');
+        div.className = `recommendation-item priority-${rec.priority}`;
+        div.innerHTML = `
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <h6 class="mb-0">${rec.category}</h6>
+                <span class="badge bg-${getPriorityColor(rec.priority)}">${rec.priority.toUpperCase()}</span>
+            </div>
+            <p class="mb-1"><strong>${rec.action}</strong></p>
+            <p class="mb-0 text-muted"><small>${rec.details}</small></p>
+        `;
+        container.appendChild(div);
+    });
+}
+
+function getPriorityColor(priority) {
+    const colors = {
+        'critical': 'danger',
+        'high': 'warning',
+        'medium': 'info',
+        'low': 'secondary'
+    };
+    return colors[priority] || 'secondary';
+}
+</script>
+{% endblock %}
