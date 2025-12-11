@@ -24,7 +24,12 @@ MYSQL_CONFIG = {
     'database': os.environ.get('MYSQL_DATABASE', 'nutrition_advisor'),
     'charset': 'utf8mb4',
     'use_unicode': True,
-    'autocommit': False
+    'autocommit': False,
+    'pool_name': 'nutrition_pool',
+    'pool_size': 5,
+    'pool_reset_session': True,
+    'connection_timeout': 10,
+    'connect_timeout': 10
 }
 
 def get_db_config():

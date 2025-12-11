@@ -20,19 +20,54 @@ except ImportError:
 
 DATABASE_PATH = SQLITE_DB_PATH  # Keep for backward compatibility
 
+# MySQL connection pool
+_mysql_pool = None
+
+def _get_mysql_pool():
+    """Get or create MySQL connection pool"""
+    global _mysql_pool
+    if _mysql_pool is None:
+        try:
+            from mysql.connector import pooling
+            _mysql_pool = pooling.MySQLConnectionPool(**MYSQL_CONFIG)
+        except Exception as e:
+            print(f"Warning: Could not create connection pool: {e}")
+            _mysql_pool = False  # Mark as failed
+    return _mysql_pool if _mysql_pool else None
+
 def get_connection():
     """Create and return a database connection (SQLite or MySQL)"""
     if DB_TYPE == 'mysql':
         if not MYSQL_AVAILABLE:
             raise ImportError("MySQL connector not installed. Run: pip install mysql-connector-python")
+        
+        # Try to use connection pool first
+        pool = _get_mysql_pool()
+        if pool:
+            try:
+                conn = pool.get_connection()
+                # Test connection
+                conn.ping(reconnect=True, attempts=3, delay=1)
+                return conn
+            except Exception as e:
+                print(f"Pool connection failed: {e}, trying direct connection")
+        
+        # Fallback to direct connection
         try:
-            conn = mysql.connector.connect(**MYSQL_CONFIG)
+            config = MYSQL_CONFIG.copy()
+            # Remove pool-specific keys for direct connection
+            config.pop('pool_name', None)
+            config.pop('pool_size', None)
+            config.pop('pool_reset_session', None)
+            
+            conn = mysql.connector.connect(**config)
+            conn.ping(reconnect=True)
             return conn
         except MySQLError as e:
             raise Exception(f"MySQL connection failed: {e}")
     else:
         # Default to SQLite
-        conn = sqlite3.connect(SQLITE_DB_PATH)
+        conn = sqlite3.connect(SQLITE_DB_PATH, check_same_thread=False, timeout=10)
         return conn
 
 def get_sql_type(datatype):
