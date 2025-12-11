@@ -1606,6 +1606,11 @@ def get_malnutrition_stats():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@app.route('/test-dropdown')
+def test_dropdown():
+    """Test page for debugging child dropdown"""
+    return render_template('test_dropdown.html')
+
 if __name__ == '__main__':
     import os
     port = int(os.environ.get('PORT', 5000))

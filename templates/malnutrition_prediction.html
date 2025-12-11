@@ -338,15 +338,28 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function loadChildren() {
+    console.log('loadChildren() called');
     const select = document.getElementById('childSelect');
+    
+    if (!select) {
+        console.error('childSelect element not found!');
+        return;
+    }
+    
     select.innerHTML = '<option value="">Loading children...</option>';
+    console.log('Fetching /api/get-children...');
     
     fetch('/api/get-children')
-        .then(res => res.json())
+        .then(res => {
+            console.log('Response status:', res.status);
+            return res.json();
+        })
         .then(data => {
+            console.log('Received data:', data);
             select.innerHTML = '<option value="">-- Select a child --</option>';
             
             if (data.success && data.children) {
+                console.log('Found children:', data.children.length);
                 if (data.children.length === 0) {
                     const option = document.createElement('option');
                     option.text = "No children found - Add one first";
@@ -359,15 +372,17 @@ function loadChildren() {
                         const weight = child.weight_kg ? `, ${child.weight_kg}kg` : '';
                         option.textContent = `${child.name} (${age} years${weight})`;
                         select.appendChild(option);
+                        console.log('Added child:', child.name);
                     });
                 }
             } else {
+                console.error('API returned success=false or no children array');
                 select.innerHTML = '<option value="">Error loading children</option>';
             }
         })
         .catch(err => {
             console.error('Error loading children:', err);
-            select.innerHTML = '<option value="">Error loading children</option>';
+            select.innerHTML = '<option value="">Connection error - check server</option>';
         });
 }
 

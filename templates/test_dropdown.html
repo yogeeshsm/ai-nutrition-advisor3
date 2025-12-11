@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Child Dropdown</title>
+</head>
+<body>
+    <h1>Testing Child Dropdown API</h1>
+    <select id="childSelect">
+        <option>Initializing...</option>
+    </select>
+    
+    <div id="output" style="margin-top: 20px; padding: 10px; background: #f0f0f0;">
+        <pre id="debug"></pre>
+    </div>
+
+    <script>
+        const debugEl = document.getElementById('debug');
+        
+        function log(msg) {
+            debugEl.textContent += msg + '\n';
+            console.log(msg);
+        }
+        
+        log('Page loaded');
+        
+        const select = document.getElementById('childSelect');
+        select.innerHTML = '<option>Loading children...</option>';
+        
+        log('Fetching /api/get-children...');
+        
+        fetch('/api/get-children')
+            .then(res => {
+                log(`Response status: ${res.status}`);
+                return res.json();
+            })
+            .then(data => {
+                log(`Received data: ${JSON.stringify(data, null, 2)}`);
+                
+                select.innerHTML = '<option value="">-- Select a child --</option>';
+                
+                if (data.success && data.children) {
+                    log(`Found ${data.children.length} children`);
+                    
+                    data.children.forEach(child => {
+                        const option = document.createElement('option');
+                        option.value = child.id;
+                        const age = child.age_years || 'N/A';
+                        const weight = child.weight_kg || 'N/A';
+                        option.textContent = `${child.name} (${age}y, ${weight}kg)`;
+                        select.appendChild(option);
+                        log(`Added: ${child.name}`);
+                    });
+                    
+                    log('✅ All children loaded successfully!');
+                } else {
+                    log('❌ Error: data.success is false or no children array');
+                    select.innerHTML = '<option>Error loading children</option>';
+                }
+            })
+            .catch(err => {
+                log(`❌ Fetch error: ${err}`);
+                select.innerHTML = '<option>Connection error</option>';
+            });
+    </script>
+</body>
+</html>
