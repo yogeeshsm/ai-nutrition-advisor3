@@ -1514,29 +1514,45 @@ def malnutrition_prediction_page():
 @app.route('/api/predict-malnutrition/<int:child_id>', methods=['POST'])
 def predict_malnutrition(child_id):
     """Predict malnutrition risk for a child using trained CSV model"""
+    conn = None
+    cursor = None
     try:
+        print(f"[DEBUG] Starting prediction for child_id: {child_id}")
+        
         # Use global predictor loaded at startup
         if MALNUTRITION_PREDICTOR is None:
+            print("[ERROR] Predictor is None")
             return jsonify({'success': False, 'error': 'Malnutrition predictor not available'}), 500
+        
+        print("[DEBUG] Predictor is available")
         
         # Get child data
         conn = db.get_connection()
+        print("[DEBUG] Database connection established")
+        
         cursor, placeholder = db.get_cursor(conn)
+        print(f"[DEBUG] Cursor obtained, placeholder: {placeholder}")
         
         query1 = f"""
             SELECT id, name, date_of_birth, gender, village
             FROM children WHERE id = {placeholder}
         """
+        print(f"[DEBUG] Executing query1: {query1} with child_id={child_id}")
         cursor.execute(query1, (child_id,))
         child_row = cursor.fetchone()
+        print(f"[DEBUG] Child row fetched: {child_row}")
         
         if not child_row:
-            cursor.close()
-            conn.close()
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
+            print("[ERROR] Child not found")
             return jsonify({'success': False, 'error': 'Child not found'}), 404
         
         # Convert to dict
         child = db.dict_from_row(child_row)
+        print(f"[DEBUG] Child data: {child}")
         
         # Get latest growth data
         query2 = f"""
@@ -1546,16 +1562,22 @@ def predict_malnutrition(child_id):
             ORDER BY measurement_date DESC
             LIMIT 1
         """
+        print(f"[DEBUG] Executing query2: {query2}")
         cursor.execute(query2, (child_id,))
         growth_row = cursor.fetchone()
+        print(f"[DEBUG] Growth row fetched: {growth_row}")
         
         if not growth_row:
-            cursor.close()
-            conn.close()
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
+            print("[ERROR] No growth data available")
             return jsonify({'success': False, 'error': 'No growth data available'}), 404
         
         # Convert to dict
         latest_growth = db.dict_from_row(growth_row)
+        print(f"[DEBUG] Latest growth: {latest_growth}")
         
         # Get growth history (for display, not used in prediction)
         if db.DB_TYPE == 'mysql':
@@ -1581,24 +1603,31 @@ def predict_malnutrition(child_id):
         
         # Calculate age in months
         dob = child['date_of_birth']
+        print(f"[DEBUG] DOB from database: {dob}, type: {type(dob)}")
         today = datetime.now().date()
         
         # Parse date_of_birth - handle string, date, or datetime
         if isinstance(dob, str):
             # Parse string date (format: YYYY-MM-DD)
+            print(f"[DEBUG] Parsing DOB string: {dob}")
             dob_date = datetime.strptime(dob, '%Y-%m-%d').date()
         elif isinstance(dob, datetime):
+            print(f"[DEBUG] Converting datetime to date")
             dob_date = dob.date()
         else:
             # Already a date object
+            print(f"[DEBUG] DOB is already a date object")
             dob_date = dob
-            
+        
+        print(f"[DEBUG] Calculating age: today={today}, dob_date={dob_date}")
         age_months = ((today - dob_date).days / 30.44)
+        print(f"[DEBUG] Age in months: {age_months}")
         
         # Get additional data from request
         request_data = request.json or {}
         
         # Prepare child data
+        print(f"[DEBUG] Preparing child data...")
         child_data = {
             'age_months': int(age_months),
             'weight_kg': float(latest_growth['weight_kg']),
@@ -1612,6 +1641,7 @@ def predict_malnutrition(child_id):
             'diarrhea_recent': request_data.get('diarrhea_recent', False),
             'fever_recent': request_data.get('fever_recent', False)
         }
+        print(f"[DEBUG] Child data prepared: {child_data}")
         
         # Get predictor and make prediction using trained CSV model
         predictor = MALNUTRITION_PREDICTOR
@@ -1619,6 +1649,7 @@ def predict_malnutrition(child_id):
         print(f"[DEBUG] Predictor is None: {predictor is None}")
         
         if predictor is None:
+            print("[ERROR] Predictor is None at prediction time")
             return jsonify({'success': False, 'error': 'Predictor not loaded'}), 500
         
         # Use new predictor method
@@ -1628,12 +1659,16 @@ def predict_malnutrition(child_id):
             weight_kg=child_data['weight_kg'],
             height_cm=child_data['height_cm']
         )
+        print(f"[DEBUG] Prediction result: {result}")
         
         # Log prediction
         print(f"[OK] Prediction for {child['name']}: {result['nutrition_status']} ({result['confidence']*100:.1f}% confidence)")
         
-        cursor.close()
-        conn.close()
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+        print("[DEBUG] Database connection closed")
         
         # Format response to match frontend expectations
         response = {
@@ -1671,13 +1706,24 @@ def predict_malnutrition(child_id):
             }
         }
         
+        print("[DEBUG] Returning successful response")
         return jsonify(response)
         
     except Exception as e:
-        print(f"Error predicting malnutrition: {e}")
+        print(f"[ERROR] Exception in predict_malnutrition: {e}")
         import traceback
         traceback.print_exc()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        
+        # Clean up connections
+        try:
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
+        except:
+            pass
+        
+        return jsonify({'success': False, 'error': f'Prediction failed: {str(e)}'}), 500
 
 @app.route('/api/malnutrition-stats', methods=['GET'])
 def get_malnutrition_stats():
