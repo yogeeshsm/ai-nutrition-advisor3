@@ -1150,9 +1150,9 @@ def analyze_food_image():
         # Read image data
         image_data = file.read()
         
-        # Import food recognition module
+        # Import Gemini food recognition module (no training required!)
         try:
-            from food_recognition import analyze_food_image as analyze_image
+            from gemini_food_recognition import analyze_food_image as analyze_image
             
             # Analyze the image
             result = analyze_image(image_data)
@@ -1160,11 +1160,18 @@ def analyze_food_image():
             return jsonify(result)
             
         except ImportError as e:
-            return jsonify({
-                'success': False,
-                'error': 'Food recognition module not available. Install required dependencies.',
-                'details': str(e)
-            }), 500
+            # Fallback to old module if available
+            try:
+                from food_recognition import analyze_food_image as analyze_image_old
+                result = analyze_image_old(image_data)
+                return jsonify(result)
+            except:
+                return jsonify({
+                    'success': False,
+                    'error': 'Food recognition not available',
+                    'message': 'Please ensure GEMINI_API_KEY is set in environment',
+                    'details': str(e)
+                }), 500
         except Exception as e:
             return jsonify({
                 'success': False,
@@ -1207,9 +1214,9 @@ def batch_analyze_food():
                 'error': 'Maximum 5 images per batch'
             }), 400
         
-        # Import food recognition module
+        # Import Gemini food recognition module
         try:
-            from food_recognition import analyze_food_image as analyze_image
+            from gemini_food_recognition import analyze_food_image as analyze_image
             
             results = []
             total_nutrition = {
@@ -1268,7 +1275,7 @@ def batch_analyze_food():
 def get_food_database():
     """Get list of supported foods in the recognition database"""
     try:
-        from food_recognition import INDIAN_FOOD_DATABASE
+        from gemini_food_recognition import INDIAN_FOOD_DATABASE
         
         foods = []
         for key, data in INDIAN_FOOD_DATABASE.items():
