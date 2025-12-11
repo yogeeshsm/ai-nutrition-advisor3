@@ -66,6 +66,9 @@ except (Exception, KeyboardInterrupt, SystemExit) as e:
         pass
 
 # Import malnutrition predictor (trained Random Forest model with fallback)
+MALNUTRITION_PREDICTOR = None
+PREDICTOR_ERROR = None
+
 try:
     import sys
     # Force reload to ensure we get the latest trained model
@@ -77,13 +80,16 @@ try:
     print(f"[OK] Malnutrition predictor loaded successfully ({predictor_type})")
 except Exception as e:
     print(f"[ERROR] Malnutrition predictor failed to load: {e}")
+    PREDICTOR_ERROR = str(e)
     print("[INFO] Attempting to use fallback predictor directly...")
     try:
         from fallback_predictor import FallbackPredictor
         MALNUTRITION_PREDICTOR = FallbackPredictor()
+        PREDICTOR_ERROR = None
         print("[OK] Fallback predictor loaded successfully")
     except Exception as e2:
         print(f"[ERROR] Fallback predictor also failed: {e2}")
+        PREDICTOR_ERROR = f"Main: {str(e)}, Fallback: {str(e2)}"
         MALNUTRITION_PREDICTOR = None
 
 app = Flask(__name__)
@@ -152,20 +158,40 @@ def health_check():
         cursor.close()
         conn.close()
         
-        return jsonify({
-            'status': 'healthy',
+        # Check predictor status
+        predictor_status = 'not_loaded'
+        predictor_type = 'none'
+        if MALNUTRITION_PREDICTOR is not None:
+            predictor_status = 'loaded'
+            if hasattr(MALNUTRITION_PREDICTOR, 'use_fallback'):
+                predictor_type = 'fallback' if MALNUTRITION_PREDICTOR.use_fallback else 'trained'
+            else:
+                predictor_type = 'fallback'
+        
+        status = 'healthy' if predictor_status == 'loaded' else 'degraded'
+        
+        response = {
+            'status': status,
             'service': 'AI Nutrition Advisor',
             'features': '60+',
             'database': 'connected',
             'children_count': child_count,
+            'malnutrition_predictor': predictor_status,
+            'predictor_type': predictor_type,
             'timestamp': datetime.now().isoformat()
-        }), 200
+        }
+        
+        if PREDICTOR_ERROR:
+            response['predictor_error'] = PREDICTOR_ERROR
+        
+        return jsonify(response), 200
     except Exception as e:
         return jsonify({
             'status': 'degraded',
             'service': 'AI Nutrition Advisor',
             'database': 'error',
             'error': str(e),
+            'malnutrition_predictor': 'unknown',
             'timestamp': datetime.now().isoformat()
         }), 200
 
@@ -1664,18 +1690,34 @@ def predict_malnutrition(child_id):
         print(f"[DEBUG] Predictor is None: {predictor is None}")
         
         if predictor is None:
-            print("[ERROR] Predictor is None at prediction time")
-            return jsonify({'success': False, 'error': 'Predictor not loaded'}), 500
+            error_msg = f'Predictor not loaded. Error: {PREDICTOR_ERROR or "Unknown"}'
+            print(f"[ERROR] {error_msg}")
+            return jsonify({
+                'success': False, 
+                'error': error_msg,
+                'details': 'The malnutrition prediction system failed to initialize. Please check server logs.'
+            }), 500
         
         # Use new predictor method with gender
         print(f"[DEBUG] Calling predict with: age={child_data['age_months']}, weight={child_data['weight_kg']}, height={child_data['height_cm']}, gender={child_data['gender']}")
-        result = predictor.predict(
-            age_months=child_data['age_months'],
-            weight_kg=child_data['weight_kg'],
-            height_cm=child_data['height_cm'],
-            gender=child_data['gender']
-        )
-        print(f"[DEBUG] Prediction result: {result}")
+        
+        try:
+            result = predictor.predict(
+                age_months=child_data['age_months'],
+                weight_kg=child_data['weight_kg'],
+                height_cm=child_data['height_cm'],
+                gender=child_data['gender']
+            )
+            print(f"[DEBUG] Prediction result: {result}")
+        except Exception as pred_error:
+            print(f"[ERROR] Prediction call failed: {pred_error}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({
+                'success': False,
+                'error': f'Prediction failed: {str(pred_error)}',
+                'details': 'An error occurred while processing the prediction.'
+            }), 500
         
         # Log prediction
         print(f"[OK] Prediction for {child['name']}: {result['nutrition_status']} ({result['confidence']*100:.1f}% confidence)")
