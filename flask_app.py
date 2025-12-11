@@ -1581,17 +1581,16 @@ def predict_malnutrition(child_id):
         
         # Calculate age in months
         dob = child['date_of_birth']
-        # Convert date to datetime if needed
-        if hasattr(dob, 'date'):
-            dob_date = dob
-        else:
-            dob_date = dob
-            
-        # Ensure both are dates for subtraction
         today = datetime.now().date()
-        if isinstance(dob, datetime):
+        
+        # Parse date_of_birth - handle string, date, or datetime
+        if isinstance(dob, str):
+            # Parse string date (format: YYYY-MM-DD)
+            dob_date = datetime.strptime(dob, '%Y-%m-%d').date()
+        elif isinstance(dob, datetime):
             dob_date = dob.date()
         else:
+            # Already a date object
             dob_date = dob
             
         age_months = ((today - dob_date).days / 30.44)
