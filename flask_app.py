@@ -64,6 +64,19 @@ except (Exception, KeyboardInterrupt, SystemExit) as e:
     def register_child_identity_routes(app):
         pass
 
+# Import malnutrition predictor (trained Random Forest model)
+try:
+    import sys
+    # Force reload to ensure we get the latest trained model
+    if 'malnutrition_predictor' in sys.modules:
+        del sys.modules['malnutrition_predictor']
+    from malnutrition_predictor import get_predictor
+    MALNUTRITION_PREDICTOR = get_predictor()
+    print("[OK] Trained malnutrition model loaded successfully")
+except Exception as e:
+    print(f"[WARNING] Malnutrition predictor error: {e}")
+    MALNUTRITION_PREDICTOR = None
+
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'nutrition-advisor-secret-key-2025')
 
@@ -80,9 +93,9 @@ translation_service = get_translation_service()
 if CHATBOT_AVAILABLE:
     try:
         chatbot = get_chatbot()
-        print(f"✅ Chatbot initialized with gemini")
+        print("[OK] Chatbot initialized with gemini")
     except Exception as e:
-        print(f"⚠️  Chatbot error: {e}")
+        print(f"[WARNING] Chatbot error: {e}")
         chatbot = None
 else:
     chatbot = None
@@ -1404,6 +1417,70 @@ def get_ml_child_profile(child_id):
 
 # ==================== MALNUTRITION PREDICTION ROUTES ====================
 
+def _generate_recommendations_for_result(result):
+    """Generate recommendations based on prediction result"""
+    recommendations = []
+    
+    if result['nutrition_status'] == 'severe':
+        recommendations.extend([
+            {
+                'category': 'Urgent Care',
+                'priority': 'critical',
+                'action': 'Immediate medical evaluation needed',
+                'details': 'Visit health center for assessment and treatment plan'
+            },
+            {
+                'category': 'Diet',
+                'priority': 'high',
+                'action': 'High-energy, high-protein diet',
+                'details': 'Frequent small meals (6-8 times/day) with energy-dense foods'
+            },
+            {
+                'category': 'Supplements',
+                'priority': 'high',
+                'action': 'Therapeutic feeding program',
+                'details': 'RUTF (Ready-to-Use Therapeutic Food) and micronutrient supplements'
+            }
+        ])
+    elif result['nutrition_status'] == 'moderate':
+        recommendations.extend([
+            {
+                'category': 'Diet',
+                'priority': 'high',
+                'action': 'Increase calorie intake by 300-500 kcal/day',
+                'details': 'Add energy-dense foods like banana, potato, rice, ghee'
+            },
+            {
+                'category': 'Nutrition',
+                'priority': 'high',
+                'action': 'Increase protein intake to 15-20g/day',
+                'details': 'Include eggs, dal, milk, paneer, chicken/fish'
+            },
+            {
+                'category': 'Monitoring',
+                'priority': 'high',
+                'action': 'Weekly weight monitoring required',
+                'details': 'Track weight gain progress every 7 days'
+            }
+        ])
+    else:  # normal
+        recommendations.extend([
+            {
+                'category': 'Maintenance',
+                'priority': 'low',
+                'action': 'Continue healthy balanced diet',
+                'details': 'Maintain current nutrition practices'
+            },
+            {
+                'category': 'Monitoring',
+                'priority': 'low',
+                'action': 'Monthly growth monitoring',
+                'details': 'Regular checkups to ensure healthy growth'
+            }
+        ])
+    
+    return recommendations
+
 @app.route('/malnutrition-prediction')
 def malnutrition_prediction_page():
     """Malnutrition Risk Prediction page"""
@@ -1411,9 +1488,11 @@ def malnutrition_prediction_page():
 
 @app.route('/api/predict-malnutrition/<int:child_id>', methods=['POST'])
 def predict_malnutrition(child_id):
-    """Predict malnutrition risk for a child"""
+    """Predict malnutrition risk for a child using trained CSV model"""
     try:
-        from malnutrition_predictor import get_predictor
+        # Use global predictor loaded at startup
+        if MALNUTRITION_PREDICTOR is None:
+            return jsonify({'success': False, 'error': 'Malnutrition predictor not available'}), 500
         
         # Get child data
         conn = db.get_connection()
@@ -1487,14 +1566,30 @@ def predict_malnutrition(child_id):
             'fever_recent': request_data.get('fever_recent', False)
         }
         
-        # Get predictor and make prediction
-        predictor = get_predictor()
-        result = predictor.predict_risk(child_data, growth_history)
+        # Get predictor and make prediction using trained CSV model
+        predictor = MALNUTRITION_PREDICTOR
+        print(f"[DEBUG] Predictor type: {type(predictor)}")
+        print(f"[DEBUG] Predictor is None: {predictor is None}")
+        
+        if predictor is None:
+            return jsonify({'success': False, 'error': 'Predictor not loaded'}), 500
+        
+        # Use new predictor method
+        print(f"[DEBUG] Calling predict with: age={child_data['age_months']}, weight={child_data['weight_kg']}, height={child_data['height_cm']}")
+        result = predictor.predict(
+            age_months=child_data['age_months'],
+            weight_kg=child_data['weight_kg'],
+            height_cm=child_data['height_cm']
+        )
+        
+        # Log prediction
+        print(f"[OK] Prediction for {child['name']}: {result['nutrition_status']} ({result['confidence']*100:.1f}% confidence)")
         
         cursor.close()
         conn.close()
         
-        return jsonify({
+        # Format response to match frontend expectations
+        response = {
             'success': True,
             'child': {
                 'id': child['id'],
@@ -1502,8 +1597,34 @@ def predict_malnutrition(child_id):
                 'age_months': int(age_months),
                 'gender': child['gender']
             },
-            'prediction': result
-        })
+            'prediction': {
+                'nutrition_status': result['nutrition_status'],
+                'risk_level': result['risk_level'],
+                'confidence': result['confidence'],
+                'overall_risk': result['risk_level'],
+                'predictions': {
+                    'underweight': {
+                        'risk_level': result['risk_level'],
+                        'probability': result['probabilities'].get('severe', 0) + result['probabilities'].get('moderate', 0),
+                        'current_status': result['nutrition_status'] in ['severe', 'moderate']
+                    },
+                    'stunting': {
+                        'risk_level': result['risk_level'],
+                        'probability': result['confidence'] if result['nutrition_status'] != 'normal' else 0.1,
+                        'current_status': result['nutrition_status'] in ['severe', 'moderate']
+                    },
+                    'wasting': {
+                        'risk_level': result['risk_level'],
+                        'probability': result['probabilities'].get('severe', 0),
+                        'current_status': result['nutrition_status'] == 'severe'
+                    }
+                },
+                'probabilities': result['probabilities'],
+                'recommendations': _generate_recommendations_for_result(result)
+            }
+        }
+        
+        return jsonify(response)
         
     except Exception as e:
         print(f"Error predicting malnutrition: {e}")
@@ -1513,9 +1634,11 @@ def predict_malnutrition(child_id):
 
 @app.route('/api/malnutrition-stats', methods=['GET'])
 def get_malnutrition_stats():
-    """Get malnutrition statistics for all children"""
+    """Get malnutrition statistics for all children using trained CSV model"""
     try:
-        from malnutrition_predictor import get_predictor
+        # Use global predictor loaded at startup
+        if MALNUTRITION_PREDICTOR is None:
+            return jsonify({'success': False, 'error': 'Malnutrition predictor not available'}), 500
         
         conn = db.get_connection()
         cursor = conn.cursor(dictionary=True)
@@ -1532,7 +1655,7 @@ def get_malnutrition_stats():
         """)
         children = cursor.fetchall()
         
-        predictor = get_predictor()
+        predictor = MALNUTRITION_PREDICTOR
         stats = {
             'total_children': len(children),
             'high_risk': 0,
@@ -1545,6 +1668,17 @@ def get_malnutrition_stats():
         }
         
         for child in children:
+            # Get growth history (last 6 months)
+            cursor.execute("""
+                SELECT weight_kg as weight, height_cm as height, measurement_date as measured_date,
+                       TIMESTAMPDIFF(MONTH, %s, measurement_date) as age_months
+                FROM growth_tracking
+                WHERE child_id = %s
+                AND measurement_date >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
+                ORDER BY measurement_date ASC
+            """, (child['date_of_birth'], child['id']))
+            growth_history = cursor.fetchall()
+            
             # Calculate age safely
             dob = child['date_of_birth']
             today = datetime.now().date()
@@ -1555,22 +1689,14 @@ def get_malnutrition_stats():
             
             age_months = int(((today - dob_date).days / 30.44))
             
-            child_data = {
-                'age_months': age_months,
-                'weight_kg': float(child['weight_kg']),
-                'height_cm': float(child['height_cm']),
-                'gender': child['gender'],
-                'meals_per_day': 3,
-                'milk_intake_ml': 500,
-                'protein_servings': 2,
-                'vegetable_servings': 2,
-                'illness_days_last_month': 0,
-                'diarrhea_recent': False,
-                'fever_recent': False
-            }
+            # Use new predictor method
+            result = predictor.predict(
+                age_months=age_months,
+                weight_kg=float(child['weight_kg']),
+                height_cm=float(child['height_cm'])
+            )
             
-            result = predictor.predict_risk(child_data)
-            risk_level = result['overall_risk']
+            risk_level = result['risk_level']
             
             if risk_level == 'high' or risk_level == 'critical':
                 stats['high_risk'] += 1
@@ -1578,19 +1704,19 @@ def get_malnutrition_stats():
                     'id': child['id'],
                     'name': child['name'],
                     'risk_level': risk_level,
-                    'predictions': result['predictions']
+                    'nutrition_status': result['nutrition_status'],
+                    'confidence': result['confidence']
                 })
             elif risk_level == 'medium':
                 stats['medium_risk'] += 1
             else:
                 stats['low_risk'] += 1
             
-            # Count specific conditions
-            if result['predictions'].get('underweight', {}).get('current_status'):
+            # Count specific conditions based on nutrition status
+            if result['nutrition_status'] in ['severe', 'moderate']:
                 stats['underweight_cases'] += 1
-            if result['predictions'].get('stunting', {}).get('current_status'):
                 stats['stunting_cases'] += 1
-            if result['predictions'].get('wasting', {}).get('current_status'):
+            if result['nutrition_status'] == 'severe':
                 stats['wasting_cases'] += 1
         
         cursor.close()
@@ -1610,6 +1736,34 @@ def get_malnutrition_stats():
 def test_dropdown():
     """Test page for debugging child dropdown"""
     return render_template('test_dropdown.html')
+
+@app.route('/api/test-predictor', methods=['GET'])
+def test_predictor():
+    """Direct test of the trained model predictor"""
+    try:
+        if MALNUTRITION_PREDICTOR is None:
+            return jsonify({'error': 'Predictor is None'}), 500
+        
+        # Test with Lakshmi's data
+        result = MALNUTRITION_PREDICTOR.predict(
+            age_months=59,
+            weight_kg=18.0,
+            height_cm=109.0
+        )
+        
+        return jsonify({
+            'success': True,
+            'predictor_loaded': True,
+            'test_child': 'Lakshmi (59mo, 18kg, 109cm)',
+            'result': result
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
 
 if __name__ == '__main__':
     import os

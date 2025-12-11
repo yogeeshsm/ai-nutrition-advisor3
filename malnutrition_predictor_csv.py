@@ -37,13 +37,13 @@ class MalnutritionPredictor:
             with open(metadata_file, 'rb') as f:
                 self.metadata = pickle.load(f)
             
-            print("[OK] Trained model loaded successfully")
+            print(f"✅ Trained model loaded successfully")
             print(f"   Accuracy: {self.metadata['accuracy']*100:.2f}%")
             print(f"   Classes: {self.metadata['classes']}")
             print(f"   Training date: {self.metadata['training_date']}")
             
         except FileNotFoundError:
-            print("[ERROR] Trained model not found!")
+            print("❌ Trained model not found!")
             print("   Please run: python train_malnutrition_model.py")
             raise Exception("Model not trained. Run training script first.")
     
