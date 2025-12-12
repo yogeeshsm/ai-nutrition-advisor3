@@ -523,15 +523,23 @@ function displayPrediction(type, pred) {
     const zscoreEl = document.getElementById(`${type}Zscore`);
     const indicatorEl = document.getElementById(`${type}ZscoreIndicator`);
     
-    riskEl.className = `risk-badge risk-${pred.risk_level}`;
-    riskEl.textContent = pred.risk_level.toUpperCase();
-    probEl.textContent = (pred.probability * 100).toFixed(1) + '%';
+    // Safely handle all values with defaults
+    riskEl.className = `risk-badge risk-${pred.risk_level || 'low'}`;
+    riskEl.textContent = (pred.risk_level || 'low').toUpperCase();
+    
+    // Safe probability display
+    const probability = pred.probability !== undefined ? pred.probability : 0;
+    probEl.textContent = (probability * 100).toFixed(1) + '%';
+    
     statusEl.textContent = pred.current_status ? '❌ Currently affected' : '✅ Normal';
     statusEl.className = pred.current_status ? 'text-danger' : 'text-success';
-    zscoreEl.textContent = pred.zscore.toFixed(2);
+    
+    // Safe z-score display (may not be present in all prediction types)
+    const zscore = pred.zscore !== undefined ? pred.zscore : 0;
+    zscoreEl.textContent = zscore.toFixed(2);
     
     // Position z-score indicator (map -3 to 0% and +3 to 100%)
-    const position = ((pred.zscore + 3) / 6) * 100;
+    const position = ((zscore + 3) / 6) * 100;
     indicatorEl.style.left = Math.max(0, Math.min(100, position)) + '%';
 }
 

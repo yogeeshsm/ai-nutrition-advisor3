@@ -1728,6 +1728,12 @@ def predict_malnutrition(child_id):
             conn.close()
         print("[DEBUG] Database connection closed")
         
+        # Get z-scores if available
+        z_scores = result.get('z_scores', {})
+        waz = z_scores.get('weight_for_age', 0)
+        haz = z_scores.get('height_for_age', 0)
+        baz = z_scores.get('bmi_for_age', 0)
+        
         # Format response to match frontend expectations
         response = {
             'success': True,
@@ -1746,21 +1752,25 @@ def predict_malnutrition(child_id):
                     'underweight': {
                         'risk_level': result['risk_level'],
                         'probability': result['probabilities'].get('severe', 0) + result['probabilities'].get('moderate', 0),
-                        'current_status': result['nutrition_status'] in ['severe', 'moderate']
+                        'current_status': result['nutrition_status'] in ['severe', 'moderate'],
+                        'zscore': waz
                     },
                     'stunting': {
                         'risk_level': result['risk_level'],
                         'probability': result['confidence'] if result['nutrition_status'] != 'normal' else 0.1,
-                        'current_status': result['nutrition_status'] in ['severe', 'moderate']
+                        'current_status': result['nutrition_status'] in ['severe', 'moderate'],
+                        'zscore': haz
                     },
                     'wasting': {
                         'risk_level': result['risk_level'],
                         'probability': result['probabilities'].get('severe', 0),
-                        'current_status': result['nutrition_status'] == 'severe'
+                        'current_status': result['nutrition_status'] == 'severe',
+                        'zscore': baz
                     }
                 },
                 'probabilities': result['probabilities'],
-                'recommendations': _generate_recommendations_for_result(result)
+                'recommendations': _generate_recommendations_for_result(result),
+                'z_scores': z_scores
             }
         }
         
