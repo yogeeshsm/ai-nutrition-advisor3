@@ -436,10 +436,14 @@ document.getElementById('predictionForm').addEventListener('submit', function(e)
     e.preventDefault();
     
     const childId = document.getElementById('childSelect').value;
-    if (!childId) {
-        alert('Please select a child');
+    if (!childId || childId === '' || childId === '0') {
+        alert('⚠️ Please select a child from the dropdown first!\n\nScroll up to see the "Select Child" dropdown at the top of the form.');
+        document.getElementById('childSelect').focus();
+        document.getElementById('childSelect').scrollIntoView({ behavior: 'smooth', block: 'center' });
         return;
     }
+    
+    console.log('Starting prediction for child ID:', childId);
     
     const requestData = {
         meals_per_day: parseInt(document.getElementById('mealsPerDay').value),
@@ -456,17 +460,29 @@ document.getElementById('predictionForm').addEventListener('submit', function(e)
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestData)
     })
-    .then(res => res.json())
+    .then(res => {
+        if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        return res.json();
+    })
     .then(data => {
         if (data.success) {
             displayResults(data);
         } else {
-            alert('Error: ' + data.error);
+            alert('Prediction Error: ' + (data.error || 'Unknown error occurred') + 
+                  (data.details ? '\n\nDetails: ' + data.details : ''));
         }
     })
     .catch(err => {
-        console.error('Error:', err);
-        alert('Failed to get prediction');
+        console.error('Prediction failed:', err);
+        alert('❌ Failed to get prediction\n\n' +
+              'Possible causes:\n' +
+              '1. Did you select a child from the dropdown?\n' +
+              '2. Server may not be running\n' +
+              '3. Network error\n\n' +
+              'Technical error: ' + err.message + '\n\n' +
+              'Check browser console (F12) for details.');
     });
 });
 
