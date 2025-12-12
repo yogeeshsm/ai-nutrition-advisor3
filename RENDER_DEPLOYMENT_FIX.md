@@ -122,7 +122,7 @@ Expected response:
 
 ✅ GitHub: Pushed successfully (commit 1355a43)
 ✅ Model: Trained Random Forest (93.90% accuracy)
-✅ API Key: AIzaSyBJARiL5ADGAJ9XhUzI_tAG5u724v6hbd4
+✅ API Key: AIzaSy...your-key-here (REPLACE WITH YOUR OWN KEY)
 ⏳ Render: Waiting for environment variables
 
 ## Next Steps

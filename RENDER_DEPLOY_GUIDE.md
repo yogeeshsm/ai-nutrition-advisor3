@@ -56,7 +56,7 @@ Click **"Advanced"** and add these environment variables:
 | `SECRET_KEY` | `your-secret-key-here` | Generate random string |
 | `GEMINI_API_KEY` | `your-gemini-api-key-here` | Get from [Google AI Studio](https://aistudio.google.com/app/apikey) |
 | `USDA_API_KEY` | `your-usda-api-key` | Optional - Get from [USDA FoodData Central](https://fdc.nal.usda.gov/api-key-signup.html) |
-| `DATA_GOV_API_KEY` | `579b464db66ec23bdd000001e3f853bd7199484e65326b922dbca7ce` | Optional |
+| `DATA_GOV_API_KEY` | `your_data_gov_api_key_here` | Optional |
 
 **🔐 Security Note**: Generate a strong SECRET_KEY:
 ```bash
