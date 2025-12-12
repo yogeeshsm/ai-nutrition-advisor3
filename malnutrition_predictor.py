@@ -118,6 +118,13 @@ class MalnutritionPredictor:
         # Calculate z-scores for display (simplified WHO calculation)
         z_scores = self._calculate_simple_zscores(age_months, weight_kg, height_cm, bmi, gender)
         
+        # Generate detailed predictions for each condition based on z-scores
+        detailed_predictions = {
+            'underweight': self._interpret_zscore(z_scores['weight_for_age'], 'Underweight'),
+            'stunting': self._interpret_zscore(z_scores['height_for_age'], 'Stunting'),
+            'wasting': self._interpret_zscore(z_scores['bmi_for_age'], 'Wasting')
+        }
+        
         return {
             'nutrition_status': predicted_class,
             'confidence': float(probabilities[prediction]),
@@ -130,7 +137,30 @@ class MalnutritionPredictor:
                 'muac_cm': muac_cm,
                 'bmi': bmi
             },
-            'z_scores': z_scores
+            'z_scores': z_scores,
+            'predictions': detailed_predictions
+        }
+    
+    def _interpret_zscore(self, zscore, condition_name):
+        """Interpret z-score to status and risk"""
+        if zscore < -3:
+            status = 'Severe'
+            risk = 'Critical'
+        elif zscore < -2:
+            status = 'Moderate'
+            risk = 'High'
+        elif zscore < -1:
+            status = 'Mild'
+            risk = 'Medium'
+        else:
+            status = 'Normal'
+            risk = 'Low'
+            
+        return {
+            'zscore': zscore,
+            'status': status,
+            'risk': risk,
+            'condition': condition_name
         }
     
     def _get_risk_level(self, nutrition_status, confidence):

@@ -93,6 +93,23 @@ class GeminiFoodRecognizer:
             else:
                 img = image_data
             
+            # Prepare image part with mime type to avoid "image media type is required" error
+            fmt = img.format if hasattr(img, 'format') and img.format else 'JPEG'
+            mime_type = f"image/{fmt.lower()}"
+            if fmt.upper() == 'JPEG':
+                mime_type = 'image/jpeg'
+            elif fmt.upper() == 'JPG':
+                mime_type = 'image/jpeg'
+                
+            img_byte_arr = io.BytesIO()
+            img.save(img_byte_arr, format=fmt)
+            image_bytes = img_byte_arr.getvalue()
+            
+            image_part = {
+                "mime_type": mime_type,
+                "data": image_bytes
+            }
+            
             # Prepare prompt for food recognition
             prompt = """Analyze this food image and provide ONLY a JSON response with this exact structure:
 {
@@ -119,7 +136,7 @@ Guidelines:
 Return ONLY the JSON, no additional text."""
 
             # Send to Gemini
-            response = self.model.generate_content([prompt, img])
+            response = self.model.generate_content([prompt, image_part])
             
             # Parse response
             result_text = response.text.strip()

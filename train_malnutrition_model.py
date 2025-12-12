@@ -34,6 +34,12 @@ def load_and_preprocess_data(csv_path):
     print(f"\nNutrition status distribution:")
     print(df['nutrition_status'].value_counts())
     
+    # Fix bad data: Recalculate BMI if it looks wrong (e.g. all 10.0)
+    # BMI = weight(kg) / (height(m))^2
+    print("\n🛠️  Recalculating BMI from weight and height to ensure accuracy...")
+    df['height_m'] = df['height_cm'] / 100.0
+    df['bmi'] = df['weight_kg'] / (df['height_m'] ** 2)
+    
     # Prepare features and target
     feature_columns = ['age_months', 'weight_kg', 'height_cm', 'muac_cm', 'bmi']
     X = df[feature_columns].values
