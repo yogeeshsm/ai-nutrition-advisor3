@@ -1728,11 +1728,38 @@ def predict_malnutrition(child_id):
             conn.close()
         print("[DEBUG] Database connection closed")
         
-        # Get z-scores if available
+        # Get z-scores and detailed predictions from result
         z_scores = result.get('z_scores', {})
-        waz = z_scores.get('weight_for_age', 0)
-        haz = z_scores.get('height_for_age', 0)
-        baz = z_scores.get('bmi_for_age', 0)
+        detailed_predictions = result.get('predictions', {})
+        
+        # Convert detailed predictions to frontend format
+        frontend_predictions = {}
+        for condition, details in detailed_predictions.items():
+            # Map status to risk_level (Normal->low, Mild->medium, Moderate->high, Severe->critical)
+            status_to_risk = {
+                'Normal': 'low',
+                'Mild': 'medium',
+                'Moderate': 'high',
+                'Severe': 'critical'
+            }
+            risk_level = status_to_risk.get(details.get('status', 'Normal'), 'low')
+            
+            # Calculate probability based on status
+            if details.get('status') == 'Severe':
+                probability = result['probabilities'].get('severe', 0.05)
+            elif details.get('status') == 'Moderate':
+                probability = result['probabilities'].get('moderate', 0.1)
+            elif details.get('status') == 'Mild':
+                probability = 0.15
+            else:
+                probability = 0.02
+            
+            frontend_predictions[condition] = {
+                'risk_level': risk_level,
+                'probability': probability,
+                'current_status': details.get('status') != 'Normal',
+                'zscore': details.get('zscore', 0)
+            }
         
         # Format response to match frontend expectations
         response = {
@@ -1748,26 +1775,7 @@ def predict_malnutrition(child_id):
                 'risk_level': result['risk_level'],
                 'confidence': result['confidence'],
                 'overall_risk': result['risk_level'],
-                'predictions': {
-                    'underweight': {
-                        'risk_level': result['risk_level'],
-                        'probability': result['probabilities'].get('severe', 0) + result['probabilities'].get('moderate', 0),
-                        'current_status': result['nutrition_status'] in ['severe', 'moderate'],
-                        'zscore': waz
-                    },
-                    'stunting': {
-                        'risk_level': result['risk_level'],
-                        'probability': result['confidence'] if result['nutrition_status'] != 'normal' else 0.1,
-                        'current_status': result['nutrition_status'] in ['severe', 'moderate'],
-                        'zscore': haz
-                    },
-                    'wasting': {
-                        'risk_level': result['risk_level'],
-                        'probability': result['probabilities'].get('severe', 0),
-                        'current_status': result['nutrition_status'] == 'severe',
-                        'zscore': baz
-                    }
-                },
+                'predictions': frontend_predictions,
                 'probabilities': result['probabilities'],
                 'recommendations': _generate_recommendations_for_result(result),
                 'z_scores': z_scores
