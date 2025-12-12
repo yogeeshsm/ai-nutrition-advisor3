@@ -44,19 +44,6 @@ Use these settings:
 | **Start Command** | `gunicorn flask_app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120` |
 | **Instance Type** | `Free` |
 
-### Step 4: Set Environment Variables
-
-Click **"Advanced"** and add these environment variables:
-
-| Key | Value | Notes |
-|-----|-------|-------|
-| `PYTHON_VERSION` | `3.11.9` | Python version |
-| `FLASK_ENV` | `production` | Production mode |
-| `DB_TYPE` | `sqlite` | Database type |
-| `SECRET_KEY` | `your-secret-key-here` | Generate random string |
-| `GEMINI_API_KEY` | `your-gemini-api-key-here` | Get from [Google AI Studio](https://aistudio.google.com/app/apikey) |
-| `USDA_API_KEY` | `your-usda-api-key` | Optional - Get from [USDA FoodData Central](https://fdc.nal.usda.gov/api-key-signup.html) |
-| `DATA_GOV_API_KEY` | `your_data_gov_api_key_here` | Optional |
 
 **🔐 Security Note**: Generate a strong SECRET_KEY:
 ```bash
