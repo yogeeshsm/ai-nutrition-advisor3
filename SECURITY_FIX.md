@@ -18,7 +18,7 @@ Even though we've removed the keys from the repository, they were previously exp
 
 ### 1. Google Gemini API Key
 - Go to: https://aistudio.google.com/app/apikey
-- Delete old key: `AIzaSyBJARiL5ADGAJ9XhUzI_tAG5u724v6hbd4`
+- Delete your old exposed key
 - Generate new key
 - Update `.env` file with new key
 
