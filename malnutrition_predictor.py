@@ -115,6 +115,9 @@ class MalnutritionPredictor:
         # Determine risk level
         risk_level = self._get_risk_level(predicted_class, probabilities[prediction])
         
+        # Calculate z-scores for display (simplified WHO calculation)
+        z_scores = self._calculate_simple_zscores(age_months, weight_kg, height_cm, bmi, gender)
+        
         return {
             'nutrition_status': predicted_class,
             'confidence': float(probabilities[prediction]),
@@ -126,7 +129,8 @@ class MalnutritionPredictor:
                 'height_cm': height_cm,
                 'muac_cm': muac_cm,
                 'bmi': bmi
-            }
+            },
+            'z_scores': z_scores
         }
     
     def _get_risk_level(self, nutrition_status, confidence):
@@ -139,6 +143,40 @@ class MalnutritionPredictor:
             return 'medium'
         else:  # normal
             return 'low'
+    
+    def _calculate_simple_zscores(self, age_months, weight_kg, height_cm, bmi, gender='male'):
+        """
+        Calculate simplified z-scores for display
+        Based on WHO growth standards (simplified version)
+        """
+        # Simplified median values (males)
+        median_weights = {0: 3.3, 6: 7.9, 12: 9.6, 18: 11.0, 24: 12.2, 36: 14.3, 48: 16.3, 60: 18.3}
+        median_heights = {0: 49.9, 6: 67.6, 12: 75.7, 18: 82.3, 24: 87.1, 36: 96.1, 48: 103.3, 60: 109.2}
+        median_bmis = {12: 16.5, 24: 16.2, 36: 15.8, 48: 15.5, 60: 15.3}
+        
+        # Adjust for gender (females ~5% lighter)
+        gender_factor = 0.95 if gender.lower() == 'female' else 1.0
+        
+        # Find closest age bracket
+        closest_age_w = min(median_weights.keys(), key=lambda x: abs(x - age_months))
+        expected_weight = median_weights[closest_age_w] * gender_factor
+        
+        closest_age_h = min(median_heights.keys(), key=lambda x: abs(x - age_months))
+        expected_height = median_heights[closest_age_h] * gender_factor
+        
+        closest_age_b = min(median_bmis.keys(), key=lambda x: abs(x - age_months))
+        expected_bmi = median_bmis[closest_age_b]
+        
+        # Calculate z-scores (simplified: (actual - expected) / SD, using SD ~15% of expected)
+        waz = (weight_kg - expected_weight) / (expected_weight * 0.15)
+        haz = (height_cm - expected_height) / (expected_height * 0.05)
+        baz = (bmi - expected_bmi) / (expected_bmi * 0.15)
+        
+        return {
+            'weight_for_age': round(waz, 2),
+            'height_for_age': round(haz, 2),
+            'bmi_for_age': round(baz, 2)
+        }
     
     def predict_from_child_data(self, child_data):
         """
