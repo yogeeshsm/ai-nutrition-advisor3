@@ -3,7 +3,12 @@ Utility functions for the Nutrition Advisor app
 Includes PDF export, translation, and helper functions
 """
 
-from fpdf import FPDF
+try:
+    from fpdf import FPDF
+    FPDF_AVAILABLE = True
+except (ImportError, ModuleNotFoundError):
+    FPDF_AVAILABLE = False
+    FPDF = None
 import io
 from datetime import datetime
 
@@ -30,42 +35,138 @@ FOOD_EMOJIS = {
     'Nutrition Rich': '💪',
 }
 
-def get_food_emoji(category):
-    """Get emoji for food category"""
-    return FOOD_EMOJIS.get(category, '🍽️')
+# Specific ingredient emoji mapping (item-level)
+ITEM_EMOJIS = {
+    'Milk': '🥛',
+    'Curd (Yogurt)': '🥣',
+    'Curd': '🥣',
+    'Paneer': '🧀',
+    'Almonds': '🌰',
+    'Cashews': '🥟',
+    'Raisins (Kishmish)': '🍇',
+    'Dates (Khajoor)': '🧅',
+    'Walnuts': '🧠',
+    'Groundnuts': '🥜',
+    'Apple': '🍎',
+    'Papaya': '🍑',
+    'Mango': '🥭',
+    'Orange': '🍊',
+    'Gauva': '🍋',
+    'Pomegranate': '🫐',
+    'Watermelon': '🍉',
+    'Grapes': '🍇',
+    'Pineapple': '🍍',
+    'Jowar (Sorghum)': '🫘',
+    'Ragi (Finger Millet)': '🥔',
+    'Poha (Flattened Rice)': '🍚',
+    'Fenugreek Leaves (Methi)': '🌿',
+    'Mustard Greens (Sarson)': '🍃',
+    'Eggs': '🥚',
+    'Rice': '🍚',
+    'Banana': '🍌',
+    'Peanuts': '🥜',
+    'Chicken': '🍗',
+    'Fish': '🐟',
+    'Ghee': '🧈',
+    'Cooking Oil': '🛢️',
+    'Wheat Flour (Atta)': '🌾',
+    'Tofu': '🥡',
+    'Paneer (Cottage Cheese)': '🧀',
+    'Jaggery (Gur)': '🍯',
+    'Potato': '🥔',
+    'Spinach (Palak) Fresh': '🥬',
+    'Amaranth Leaves (Chaulai)': '🌱',
+    'Curry Leaves': '🍀',
+    'Coriander Leaves (Dhania)': '☘️',
+    'Mint Leaves (Pudina)': '🪴',
+    'Radish Greens': '🍃',
+    'Drumstick Leaves (Moringa)': '🌿',
+    'Cabbage (Green)': '🥗',
+    'Lettuce': '🌳',
+    'Soya Chunks': '🧽',
+    'Oats': '🌾',
+    'Quinoa': '🟤',
+    'Chia Seeds': '⚫',
+    'Flax Seeds (Alsi)': '🫘',
+    'Sunflower Seeds': '🌻',
+    'Pumpkin Seeds': '🎃',
+    'Sesame Seeds (Til)': '⚪',
+    'Moong Dal ': '🟢',
+    'Toor Dal':'🟡',
+    'Chana Dal': '🟠',
+    'Masoor Dal': '🔴',
+    'Rajma (Kidney Beans)': '🫘',
+    'Chickpeas (Kabuli Chana)': '🧆',
+    'Sugar': '🧊',
+    'Honey': '🐝',
+    'Tomato': '🍅',
+    'Carrot': '🥕',
+    'Pumpkin': '🎃',
+    'Cabbage': '🥗',
+    'Cauliflower': '🌼',
+    'Green Beans': '🟩',
+    'Brinjal (Eggplant)': '🍆',
+}
 
-class NutritionPDF(FPDF):
-    """Custom PDF class for meal plans"""
-    
-    def header(self):
-        """PDF header"""
-        self.set_font('Arial', 'B', 16)
-        self.cell(0, 10, 'AI Nutrition Advisor - Weekly Meal Plan', 0, 1, 'C')
-        self.set_font('Arial', '', 10)
-        self.cell(0, 5, f'Generated on: {datetime.now().strftime("%d-%m-%Y %H:%M")}', 0, 1, 'C')
-        self.ln(5)
-    
-    def footer(self):
-        """PDF footer"""
-        self.set_y(-15)
-        self.set_font('Arial', 'I', 8)
-        self.cell(0, 10, f'Page {self.page_no()}', 0, 0, 'C')
-    
-    def chapter_title(self, title):
-        """Add chapter title"""
-        self.set_font('Arial', 'B', 14)
-        self.set_fill_color(255, 107, 107)
-        self.set_text_color(255, 255, 255)
-        self.cell(0, 10, title, 0, 1, 'L', True)
-        self.set_text_color(0, 0, 0)
-        self.ln(2)
-    
-    def add_key_value(self, key, value):
-        """Add key-value pair"""
-        self.set_font('Arial', 'B', 10)
-        self.cell(60, 6, key + ':', 0, 0)
-        self.set_font('Arial', '', 10)
-        self.cell(0, 6, str(value), 0, 1)
+def get_food_emoji(name_or_category: str):
+    """Get an emoji for either a specific ingredient name or for a category.
+
+    If an exact ingredient match exists in ITEM_EMOJIS return that; otherwise
+    try mapping to a category emoji via FOOD_EMOJIS and finally default to a
+    generic plate emoji.
+    """
+    # Try item-level mapping first
+    if not name_or_category:
+        return '🍽️'
+
+    if name_or_category in ITEM_EMOJIS:
+        return ITEM_EMOJIS[name_or_category]
+
+    # Fallback to category mapping
+    return FOOD_EMOJIS.get(name_or_category, '🍽️')
+
+if FPDF_AVAILABLE:
+    class NutritionPDF(FPDF):
+        """Custom PDF class for meal plans"""
+
+        def header(self):
+            """PDF header"""
+            self.set_font('Arial', 'B', 16)
+            self.cell(0, 10, 'AI Nutrition Advisor - Weekly Meal Plan', 0, 1, 'C')
+            self.set_font('Arial', '', 10)
+            self.cell(0, 5, f'Generated on: {datetime.now().strftime("%d-%m-%Y %H:%M")}', 0, 1, 'C')
+            self.ln(5)
+
+        def footer(self):
+            """PDF footer"""
+            self.set_y(-15)
+            self.set_font('Arial', 'I', 8)
+            self.cell(0, 10, f'Page {self.page_no()}', 0, 0, 'C')
+
+        def chapter_title(self, title):
+            """Add chapter title"""
+            self.set_font('Arial', 'B', 14)
+            self.set_fill_color(255, 107, 107)
+            self.set_text_color(255, 255, 255)
+            self.cell(0, 10, title, 0, 1, 'L', True)
+            self.set_text_color(0, 0, 0)
+            self.ln(2)
+
+        def add_key_value(self, key, value):
+            """Add key-value pair"""
+            self.set_font('Arial', 'B', 10)
+            self.cell(60, 6, key + ':', 0, 0)
+            self.set_font('Arial', '', 10)
+            self.cell(0, 6, str(value), 0, 1)
+
+else:
+    class NutritionPDF:
+        def __init__(self, *args, **kwargs):
+            raise RuntimeError("PDF generation requires 'fpdf' package. Please install via requirements.txt")
+
+    def export_to_pdf(meal_plan, num_children, budget):
+        """PDF generation not available when 'fpdf' is missing"""
+        raise RuntimeError("PDF export unavailable. Install 'fpdf' package to enable this feature")
 
 def export_to_pdf(meal_plan, num_children, budget):
     """Export meal plan to PDF"""
@@ -384,3 +485,5 @@ def generate_recipe_suggestions(ingredients_list):
             suggestions.append(recipe)
     
     return suggestions[:5]  # Return top 5 suggestions
+
+

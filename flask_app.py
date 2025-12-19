@@ -68,18 +68,30 @@ def index():
         category_items = []
         for ing_name in ingredients:
             ing = ingredients_df[ingredients_df['name'] == ing_name].iloc[0]
-            # Determine unit based on serving size
+            # Determine display unit (kg vs L) for specific ingredients
             serving_size = ing['serving_size_g']
-            if serving_size >= 1000:
-                unit = 'L' if category == 'Dairy' else 'kg'
+            liquid_items = {"Milk", "Cooking Oil", "Ghee", "Honey"}
+            density_kg_per_l = {  # approximate densities for display price conversion
+                "Cooking Oil": 0.92,
+                "Ghee": 0.91,
+                "Honey": 1.42,
+            }
+            if ing['name'] in liquid_items:
+                unit = 'L'
             else:
-                unit = 'kg'
+                unit = 'kg' if serving_size < 1000 else ('L' if category == 'Dairy' else 'kg')
             
+            # Compute display cost per chosen unit (₹/L for liquids)
+            cost_per_unit = ing['cost_per_kg']
+            if ing['name'] in density_kg_per_l:
+                cost_per_unit = round(cost_per_unit * density_kg_per_l[ing['name']], 2)
+
             category_items.append({
                 'name': ing['name'],
-                'cost': ing['cost_per_kg'],
+                'cost': cost_per_unit,
                 'calories': ing['calories_per_100g'],
-                'emoji': get_food_emoji(category),
+                # Use item-level emoji mapping where available
+                'emoji': get_food_emoji(ing['name']),
                 'unit': unit,
                 'serving_size': serving_size
             })

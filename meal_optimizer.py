@@ -26,6 +26,30 @@ class MealOptimizer:
             'snack': 0.10,
             'dinner': 0.25
         }
+        # Densities (kg per liter) for items typically priced per liter
+        self.liquid_densities = {
+            'Cooking Oil': 0.92,
+            'Ghee': 0.91,
+            'Honey': 1.42,
+            # Milk commonly priced per liter but cost computation remains per gram
+            'Milk': 1.03,
+        }
+
+    def _per_gram_price(self, row):
+        """Return price per gram for an ingredient row.
+
+        If a `cost_per_l` field is available and the ingredient is a liquid,
+        convert liter price to per-gram using density. Otherwise, use
+        `cost_per_kg / 1000`.
+        """
+        name = row['name']
+        if name in self.liquid_densities and 'cost_per_l' in row and row['cost_per_l'] not in (None, np.nan):
+            density = self.liquid_densities[name]
+            try:
+                return (float(row['cost_per_l']) / (density * 1000.0))
+            except Exception:
+                return float(row['cost_per_kg']) / 1000.0
+        return float(row['cost_per_kg']) / 1000.0
         
     def _get_daily_requirements(self):
         """Get daily nutritional requirements based on age group"""
@@ -207,7 +231,7 @@ class MealOptimizer:
         
         # Constraint: Budget
         prob += lpSum([
-            ingredient_vars[row['name']] * (row['cost_per_kg'] / 1000) * self.num_children
+            ingredient_vars[row['name']] * self._per_gram_price(row) * self.num_children
             for idx, row in meal_ingredients.iterrows()
         ]) <= meal_budget
         
@@ -244,7 +268,7 @@ class MealOptimizer:
             qty = ingredient_vars[row['name']].varValue
             if qty and qty > 5:  # Only include if quantity > 5g
                 qty_per_child = round(qty, 1)
-                cost = (row['cost_per_kg'] / 1000) * qty_per_child * self.num_children
+                cost = self._per_gram_price(row) * qty_per_child * self.num_children
                 
                 selected_items.append({
                     'ingredient': row['name'],
