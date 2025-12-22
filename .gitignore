@@ -89,3 +89,14 @@ docs/_build/
 .env.*.local
 API_KEYS.txt
 *.keys
+
+# Food Recognition (local only)
+food_recognition.py
+gemini_food_recognition.py
+setup_food_recognition.py
+test_food_recognition.py
+train_food_model.py
+templates/food_recognition.html
+models/
+FOOD_RECOGNITION*.md
+TRAINING_GUIDE.md
