@@ -15,17 +15,11 @@ services:
         value: sqlite
       - key: SECRET_KEY
         generateValue: true
-      - key: GEMINI_API_KEY
-        sync: false
       - key: USDA_API_KEY
         sync: false
       - key: DATA_GOV_API_KEY
         sync: false
       - key: GROQ_API_KEY
-        sync: false
-      - key: BASE44_API_KEY
-        sync: false
-      - key: BASE44_APP_ID
         sync: false
     autoDeploy: true
     healthCheckPath: /health

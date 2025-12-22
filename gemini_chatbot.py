@@ -1,27 +1,30 @@
 """
-AI Nutrition Chatbot using Google Gemini API
+AI Nutrition Chatbot using GROQ API
 Provides personalized nutrition advice and meal plan modifications
 """
 
 import os
-import google.generativeai as genai
+import requests
 from typing import Dict, List, Optional
 
+# GROQ API Configuration
+GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions'
+GROQ_MODEL = 'llama-3.3-70b-versatile'
+
 class NutritionChatbot:
-    """AI Nutrition Chatbot powered by Google Gemini"""
+    """AI Nutrition Chatbot powered by GROQ"""
     
     def __init__(self, api_key: Optional[str] = None):
-        """Initialize the chatbot with Gemini API"""
-        self.api_key = api_key or os.environ.get('GEMINI_API_KEY')
+        """Initialize the chatbot with GROQ API"""
+        self.api_key = api_key or os.environ.get('GROQ_API_KEY')
         
         if not self.api_key:
-            raise ValueError("Gemini API key not found. Set GEMINI_API_KEY environment variable.")
+            raise ValueError("GROQ API key not found. Set GROQ_API_KEY environment variable.")
         
-        # Configure Gemini
-        genai.configure(api_key=self.api_key)
-        
-        # Initialize the model (using Gemini 2.0 Flash - latest version)
-        self.model = genai.GenerativeModel('gemini-2.0-flash')
+        self.headers = {
+            'Authorization': f'Bearer {self.api_key}',
+            'Content-Type': 'application/json'
+        }
         
         # System context for nutrition expertise
         self.system_context = """You are an expert nutritionist and dietitian specializing in child nutrition for Anganwadi centers in India. 
@@ -63,21 +66,40 @@ Keep responses concise (2-3 paragraphs) unless asked for details."""
             The chatbot's response
         """
         try:
-            # Build the full prompt with context
+            # Build messages for GROQ API
+            messages = [{"role": "system", "content": self.system_context}]
+            
+            # Add conversation history
             if conversation_history:
-                # Include previous messages for context
-                context = "\n\n".join([
-                    f"{'User' if msg['role'] == 'user' else 'Assistant'}: {msg['content']}"
-                    for msg in conversation_history[-5:]  # Last 5 messages
-                ])
-                full_prompt = f"{self.system_context}\n\nPrevious conversation:\n{context}\n\nUser: {user_message}\n\nAssistant:"
+                for msg in conversation_history[-5:]:
+                    messages.append({
+                        "role": msg.get('role', 'user'),
+                        "content": msg.get('content', '')
+                    })
+            
+            # Add current user message
+            messages.append({"role": "user", "content": user_message})
+            
+            # Call GROQ API
+            payload = {
+                'model': GROQ_MODEL,
+                'messages': messages,
+                'temperature': 0.7,
+                'max_tokens': 1000
+            }
+            
+            response = requests.post(
+                GROQ_API_URL,
+                headers=self.headers,
+                json=payload,
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                return result['choices'][0]['message']['content']
             else:
-                full_prompt = f"{self.system_context}\n\nUser: {user_message}\n\nAssistant:"
-            
-            # Generate response
-            response = self.model.generate_content(full_prompt)
-            
-            return response.text
+                return f"Error: API returned status {response.status_code}"
             
         except Exception as e:
             error_msg = str(e)
@@ -124,13 +146,39 @@ Provide:
 4. Expected improvement in nutrition or cost"""
 
         try:
-            response = self.model.generate_content(f"{self.system_context}\n\n{prompt}")
-            return response.text
+            return self._call_groq(prompt)
         except Exception as e:
             error_msg = str(e)
             if "quota" in error_msg.lower() or "429" in error_msg:
                 return "AI analysis temporarily unavailable due to quota limits. Please try: (1) Using the Meal Optimizer tool directly, (2) Checking the ML Recommendations page, or (3) Trying again later."
             return f"Error analyzing meal plan: {error_msg}"
+    
+    def _call_groq(self, prompt: str) -> str:
+        """Helper method to call GROQ API"""
+        messages = [
+            {"role": "system", "content": self.system_context},
+            {"role": "user", "content": prompt}
+        ]
+        
+        payload = {
+            'model': GROQ_MODEL,
+            'messages': messages,
+            'temperature': 0.7,
+            'max_tokens': 1000
+        }
+        
+        response = requests.post(
+            GROQ_API_URL,
+            headers=self.headers,
+            json=payload,
+            timeout=30
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            return result['choices'][0]['message']['content']
+        else:
+            raise Exception(f"API returned status {response.status_code}")
     
     def suggest_alternatives(self, ingredient: str, reason: str = "general") -> str:
         """
@@ -157,8 +205,7 @@ For each alternative, provide:
 Keep suggestions practical and affordable."""
 
         try:
-            response = self.model.generate_content(f"{self.system_context}\n\n{prompt}")
-            return response.text
+            return self._call_groq(prompt)
         except Exception as e:
             error_msg = str(e)
             if "quota" in error_msg.lower() or "429" in error_msg:
@@ -182,8 +229,7 @@ Question: {question}
 Provide a clear, practical answer suitable for rural Indian context."""
 
         try:
-            response = self.model.generate_content(f"{self.system_context}\n\n{prompt}")
-            return response.text
+            return self._call_groq(prompt)
         except Exception as e:
             return f"Error answering question: {str(e)}"
     
@@ -210,8 +256,7 @@ Give 4-5 actionable tips that:
 4. Include specific examples"""
 
         try:
-            response = self.model.generate_content(f"{self.system_context}\n\n{prompt}")
-            return response.text
+            return self._call_groq(prompt)
         except Exception as e:
             return f"Error generating tips: {str(e)}"
 
