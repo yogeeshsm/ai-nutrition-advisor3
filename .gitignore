@@ -87,3 +87,5 @@ docs/_build/
 .env
 .env.local
 .env.*.local
+API_KEYS.txt
+*.keys
