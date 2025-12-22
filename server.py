@@ -79,13 +79,6 @@ def village_economy():
     except Exception as e:
         return f"Error: {e}"
 
-@app.route('/food-recognition')
-def food_recognition():
-    try:
-        return render_template('food_recognition.html')
-    except Exception as e:
-        return f"Error: {e}"
-
 @app.route('/chatbot')
 def chatbot_page():
     try:
@@ -175,7 +168,6 @@ if __name__ == '__main__':
     print("   - Child Growth Tracking")
     print("   - Immunization Schedules")
     print("   - Village Economy")
-    print("   - Food Recognition")
     print("   - Analytics")
     print("\n" + "="*60)
     print("Press CTRL+C to stop")

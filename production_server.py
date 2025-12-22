@@ -55,10 +55,6 @@ def immunisation():
 def village_economy():
     return render_template('village_economy.html')
 
-@app.route('/food-recognition')
-def food_recognition():
-    return render_template('food_recognition.html')
-
 @app.route('/chatbot')
 def chatbot_page():
     return render_template('chatbot.html')

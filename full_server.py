@@ -185,13 +185,6 @@ except ImportError as e:
         except Exception as e:
             return f"Error: {e}"
     
-    @app.route('/food-recognition')
-    def food_recognition():
-        try:
-            return render_template('food_recognition.html')
-        except Exception as e:
-            return f"Error: {e}"
-    
     @app.route('/chatbot')
     def chatbot_page():
         try:

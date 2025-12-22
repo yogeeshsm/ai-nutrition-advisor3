@@ -55,10 +55,6 @@ def immunisation():
 def village_economy():
     return render_template('village_economy.html')
 
-@app.route('/food-recognition')
-def food_recognition():
-    return render_template('food_recognition.html')
-
 @app.route('/chatbot')
 def chatbot_page():
     return render_template('chatbot.html')
@@ -140,7 +136,6 @@ if __name__ == '__main__':
         print("   - Child Growth Tracking")
         print("   - Immunization Schedules")
         print("   - Village Economy")
-        print("   - Food Recognition")
         print("   - Analytics")
         print("\n" + "="*60)
         print("Press CTRL+C to stop")
