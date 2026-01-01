@@ -82,6 +82,26 @@ api = USDAFoodAPI("AIzaSyXXXXXXXX")
   - **Heroku**: Config Vars in Settings
 - Never hardcode API keys in `render.yaml`, `railway.json`, etc.
 
+### 5. Pre-commit Hook (Recommended)
+Install the pre-commit hook to automatically check for API keys:
+
+```bash
+# Copy the pre-commit hook
+cp pre-commit-hook.sh .git/hooks/pre-commit
+
+# Make it executable (Unix/Mac/Linux)
+chmod +x .git/hooks/pre-commit
+
+# On Windows with Git Bash
+git update-index --chmod=+x .git/hooks/pre-commit
+```
+
+The hook will automatically run before each commit and prevent you from committing:
+- The `.env` file
+- Files with API key patterns
+- Secret files
+- Hardcoded API keys in Python files
+
 ## 🚨 If API Keys Were Exposed
 
 If you accidentally committed API keys:
