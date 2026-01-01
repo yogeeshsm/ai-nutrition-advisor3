@@ -83,12 +83,20 @@ docs/_build/
 *.backup
 *~
 
-# Environment variables
+# Environment variables and secrets
 .env
 .env.local
 .env.*.local
+.env.production
+.env.development
+.env.test
 API_KEYS.txt
 *.keys
+secrets.txt
+secrets.json
+config.local.*
+*secret*
+*credential*
 
 # Food Recognition (local only)
 food_recognition.py

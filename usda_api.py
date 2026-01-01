@@ -221,9 +221,16 @@ def get_usda_api(api_key: Optional[str] = None) -> Optional[USDAFoodAPI]:
 
 # Example usage
 if __name__ == "__main__":
-    # Test the API
-    api_key = "DEMO_KEY"  # Replace with your actual key
-    api = USDAFoodAPI(api_key)
+    # Test the API using environment variable
+    # Make sure to set USDA_API_KEY in your .env file
+    # For testing purposes, you can use "DEMO_KEY" from USDA FoodData Central
+    api = get_usda_api()
+    
+    if not api:
+        print("❌ Failed to initialize API. Please set USDA_API_KEY environment variable.")
+        print("   Get your free API key at: https://fdc.nal.usda.gov/api-key-signup.html")
+        print("   For testing, you can use: DEMO_KEY")
+        exit(1)
     
     # Search for foods
     print("Searching for 'banana'...")

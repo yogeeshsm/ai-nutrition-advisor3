@@ -90,6 +90,8 @@ This application is designed to help Anganwadi workers create nutritionally bala
 
 ## 🚀 Installation
 
+> **🔒 Security Note**: This project uses API keys for enhanced features. **NEVER commit your `.env` file or hardcode API keys in code**. All API keys should be stored in your local `.env` file which is already excluded from Git. See [SECURITY.md](SECURITY.md) for detailed security guidelines.
+
 ### Step 1: Clone or Download the Repository
 
 ```powershell
@@ -113,13 +115,25 @@ python -m venv venv
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```
 
-### Step 3: Install Dependencies
+### Step 3: Set Up Environment Variables
+
+```powershell
+# Copy the template to create your .env file
+cp .env.template .env
+
+# Or on Windows Command Prompt:
+copy .env.template .env
+```
+
+**Important**: The `.env` file contains your API keys and is automatically excluded from Git. Never commit this file!
+
+### Step 4: Install Dependencies
 
 ```powershell
 pip install -r requirements.txt
 ```
 
-### Step 4: Initialize Database
+### Step 5: Initialize Database
 
 ```powershell
 python database.py
@@ -127,7 +141,7 @@ python database.py
 
 This will create the SQLite database and populate it with sample ingredient data.
 
-### Step 5: Get Accurate USDA Nutrition Data (Recommended)
+### Step 6: Get Accurate USDA Nutrition Data (Recommended)
 
 For 100% accurate nutrition data instead of estimates:
 
