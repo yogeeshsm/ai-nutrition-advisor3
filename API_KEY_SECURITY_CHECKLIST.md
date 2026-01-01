@@ -24,11 +24,11 @@ git status --ignored
 
 ### Search for Potential API Keys in Staged Files
 ```bash
-# Search for common API key patterns
-git diff --cached | grep -E "AIza|sk-proj|gsk_|ghp_|glpat"
+# Search for common API key patterns (broad match for various key types)
+git diff --cached | grep -E "AIza|sk-|gsk_|ghp_|glpat"
 
-# Search for hardcoded assignments
-git diff --cached | grep -E "api_key\s*=\s*['\"]"
+# Search for hardcoded assignments with minimum length
+git diff --cached | grep -E "api_key\s*=\s*['\"][^'\"]{15,}['\"]"
 ```
 ✅ Should return no results
 
@@ -165,8 +165,8 @@ git push --force
 Run this command before every push:
 
 ```bash
-# Search all tracked files for potential API keys
-git grep -E "AIza|sk-proj|gsk_|ghp_|glpat|api_key\s*=\s*['\"][^'\"]*['\"]" -- "*.py" "*.js" "*.json" "*.yaml"
+# Search all tracked files for potential API keys (broad patterns)
+git grep -E "AIza|sk-[A-Za-z0-9_-]{20,}|gsk_|ghp_|glpat|api_key\s*=\s*['\"][^'\"]{15,}['\"]" -- "*.py" "*.js" "*.json" "*.yaml"
 ```
 
 ✅ Should return no results (or only comments/placeholders)

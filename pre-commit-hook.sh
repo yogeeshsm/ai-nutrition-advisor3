@@ -15,7 +15,7 @@ if git diff --cached --name-only | grep -q "^\.env$"; then
 fi
 
 # Check for common API key patterns in staged files
-if git diff --cached | grep -qE "(AIza[A-Za-z0-9_-]{35}|sk-proj-[A-Za-z0-9]{32,}|gsk_[A-Za-z0-9]{32,}|ghp_[A-Za-z0-9]{36}|glpat-[A-Za-z0-9_-]{20})"; then
+if git diff --cached | grep -qE "(AIza[A-Za-z0-9_-]{35}|sk-[A-Za-z0-9_-]{20,}|gsk_[A-Za-z0-9_-]{32,}|ghp_[A-Za-z0-9]{36}|glpat-[A-Za-z0-9_-]{20})"; then
     echo "❌ ERROR: Potential API key detected in staged changes!"
     echo "   Found pattern matching: Google API, OpenAI, GROQ, GitHub, or GitLab token"
     echo ""
@@ -23,12 +23,12 @@ if git diff --cached | grep -qE "(AIza[A-Za-z0-9_-]{35}|sk-proj-[A-Za-z0-9]{32,}
     echo "   API keys should be in .env file (which is gitignored)."
     echo ""
     echo "   To see what was detected, run:"
-    echo "   git diff --cached | grep -E 'AIza|sk-proj|gsk_|ghp_|glpat'"
+    echo "   git diff --cached | grep -E 'AIza|sk-|gsk_|ghp_|glpat'"
     exit 1
 fi
 
-# Check for hardcoded api_key assignments in Python files
-if git diff --cached -- "*.py" | grep -qE "api_key\s*=\s*['\"][A-Za-z0-9_-]{20,}['\"]"; then
+# Check for hardcoded api_key assignments in Python files with reasonable length keys
+if git diff --cached -- "*.py" | grep -qE "api_key\s*=\s*['\"][A-Za-z0-9_/+=.-]{15,}['\"]"; then
     echo "⚠️  WARNING: Potential hardcoded API key assignment detected!"
     echo "   Found pattern: api_key = \"...\" with what looks like a real key"
     echo ""
