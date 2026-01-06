@@ -1,30 +1,29 @@
 """
-AI Nutrition Chatbot using GROQ API
+AI Nutrition Chatbot using Google Gemini API
 Provides personalized nutrition advice and meal plan modifications
 """
 
 import os
-import requests
+import google.generativeai as genai
 from typing import Dict, List, Optional
 
-# GROQ API Configuration
-GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions'
-GROQ_MODEL = 'llama-3.3-70b-versatile'
+# Gemini API Configuration
+GEMINI_API_KEY = 'AIzaSyCtSN-cwuW9rJ6Ex8SBZo2tDbwjyu4v8V0'
+GEMINI_MODEL = 'gemini-2.5-flash'
 
 class NutritionChatbot:
-    """AI Nutrition Chatbot powered by GROQ"""
+    """AI Nutrition Chatbot powered by Google Gemini"""
     
     def __init__(self, api_key: Optional[str] = None):
-        """Initialize the chatbot with GROQ API"""
-        self.api_key = api_key or os.environ.get('GROQ_API_KEY')
+        """Initialize the chatbot with Gemini API"""
+        self.api_key = api_key or os.environ.get('GEMINI_API_KEY') or GEMINI_API_KEY
         
         if not self.api_key:
-            raise ValueError("GROQ API key not found. Set GROQ_API_KEY environment variable.")
+            raise ValueError("Gemini API key not found. Set GEMINI_API_KEY environment variable.")
         
-        self.headers = {
-            'Authorization': f'Bearer {self.api_key}',
-            'Content-Type': 'application/json'
-        }
+        # Configure Gemini
+        genai.configure(api_key=self.api_key)
+        self.model = genai.GenerativeModel(GEMINI_MODEL)
         
         # System context for nutrition expertise
         self.system_context = """You are an expert nutritionist and dietitian specializing in child nutrition for Anganwadi centers in India. 
@@ -51,6 +50,7 @@ Always provide:
 3. Culturally appropriate suggestions (Indian foods)
 4. Simple, easy-to-understand language
 5. Safety warnings when needed
+6. Avoid mentioning costs/fees/charges unless specifically asked or essential to the context
 
 Keep responses concise (2-3 paragraphs) unless asked for details."""
 
@@ -66,40 +66,29 @@ Keep responses concise (2-3 paragraphs) unless asked for details."""
             The chatbot's response
         """
         try:
-            # Build messages for GROQ API
-            messages = [{"role": "system", "content": self.system_context}]
+            # Build conversation context
+            conversation_text = self.system_context + "\n\n"
             
             # Add conversation history
             if conversation_history:
                 for msg in conversation_history[-5:]:
-                    messages.append({
-                        "role": msg.get('role', 'user'),
-                        "content": msg.get('content', '')
-                    })
+                    role = msg.get('role', 'user')
+                    content = msg.get('content', '')
+                    if role == 'user':
+                        conversation_text += f"User: {content}\n"
+                    else:
+                        conversation_text += f"Assistant: {content}\n"
             
             # Add current user message
-            messages.append({"role": "user", "content": user_message})
+            conversation_text += f"User: {user_message}\nAssistant:"
             
-            # Call GROQ API
-            payload = {
-                'model': GROQ_MODEL,
-                'messages': messages,
-                'temperature': 0.7,
-                'max_tokens': 1000
-            }
+            # Call Gemini API
+            response = self.model.generate_content(conversation_text)
             
-            response = requests.post(
-                GROQ_API_URL,
-                headers=self.headers,
-                json=payload,
-                timeout=30
-            )
-            
-            if response.status_code == 200:
-                result = response.json()
-                return result['choices'][0]['message']['content']
+            if response.text:
+                return response.text
             else:
-                return f"Error: API returned status {response.status_code}"
+                return "I apologize, but I couldn't generate a response. Please try again."
             
         except Exception as e:
             error_msg = str(e)
@@ -132,7 +121,6 @@ Please use the other features or try the chatbot again later. Thank you!"""
 
 Meal Plan Details:
 - Nutrition Score: {meal_plan_data.get('nutrition_score', 'N/A')}/100
-- Total Cost: ₹{meal_plan_data.get('total_cost', 'N/A')}
 - Number of Children: {meal_plan_data.get('num_children', 'N/A')}
 - Age Group: {meal_plan_data.get('age_group', 'N/A')}
 - Budget: ₹{meal_plan_data.get('budget', 'N/A')}
@@ -143,7 +131,7 @@ Provide:
 1. Assessment of the current plan
 2. Specific recommendations to address the concern
 3. 2-3 actionable suggestions with Indian ingredients
-4. Expected improvement in nutrition or cost"""
+4. Expected improvement in nutrition (only mention cost if concern is budget-related)"""
 
         try:
             return self._call_groq(prompt)

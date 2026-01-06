@@ -5,17 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}AI Nutrition Advisor{% endblock %}</title>
     
-    <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap 5 CSS (Local) -->
+    <link href="{{ url_for('static', filename='vendor/bootstrap.min.css') }}" rel="stylesheet">
     
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Font Awesome (using unpkg as fallback) -->
+    <link rel="stylesheet" href="https://unpkg.com/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
     
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <!-- Chart.js (using unpkg as fallback) -->
+    <script src="https://unpkg.com/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     
     <style>
         :root {
@@ -1052,11 +1052,17 @@
                     
                     <!-- Child Health Dropdown -->
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle {% if request.path in ['/child-identity-card', '/growth-tracking', '/immunisation', '/who-vaccines'] %}active{% endif %}" 
+                        <a class="nav-link dropdown-toggle {% if request.path in ['/child-identity-card', '/growth-tracking', '/immunisation', '/who-vaccines', '/emergency-alerts'] %}active{% endif %}" 
                            href="#" id="childHealthDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="fas fa-baby"></i> Child Health
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="childHealthDropdown">
+                            <li>
+                                <a class="dropdown-item {% if request.path == '/emergency-alerts' %}active{% endif %}" href="/emergency-alerts">
+                                    <i class="fas fa-ambulance text-danger"></i> 🆘 Emergency Alerts
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
                             <li>
                                 <a class="dropdown-item {% if request.path == '/child-identity-card' %}active{% endif %}" href="/child-identity-card">
                                     <i class="fas fa-qrcode"></i> Child ID Card
@@ -1082,14 +1088,14 @@
                     
                     <!-- AI Tools Dropdown -->
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle {% if request.path in ['/chatbot', '/ml-recommendations', '/child-identity-scanner', '/food-recognition'] %}active{% endif %}" 
+                        <a class="nav-link dropdown-toggle {% if request.path in ['/chatbot', '/ml-recommendations', '/child-identity-scanner', '/simple-advisor'] %}active{% endif %}" 
                            href="#" id="aiToolsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="fas fa-robot"></i> AI Tools
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="aiToolsDropdown">
                             <li>
-                                <a class="dropdown-item {% if request.path == '/food-recognition' %}active{% endif %}" href="/food-recognition">
-                                    <i class="fas fa-camera"></i> Food Recognition
+                                <a class="dropdown-item {% if request.path == '/simple-advisor' %}active{% endif %}" href="/simple-advisor">
+                                    <i class="fas fa-heart"></i> Simple Guide (Parents)
                                 </a>
                             </li>
                             <li>
@@ -1227,17 +1233,16 @@
                 Made with love for Karnataka Children's
             </p>
             <p class="mb-0" style="opacity: 0.7;">
-                AI Nutrition Advisor v2.0 | November 2025
-                <span class="badge bg-success ms-2">NEW: Mobile Child ID Card</span>
+                AI Nutrition Advisor v2.0
             </p>
         </div>
     </footer>
 
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Bootstrap JS (Local) -->
+    <script src="{{ url_for('static', filename='vendor/bootstrap.bundle.min.js') }}"></script>
     
     <!-- jQuery -->
-    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://unpkg.com/jquery@3.7.0/dist/jquery.min.js"></script>
     
     {% block extra_js %}{% endblock %}
 </body>

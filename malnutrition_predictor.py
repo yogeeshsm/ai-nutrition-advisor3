@@ -25,13 +25,19 @@ class MalnutritionPredictor:
     def _load_trained_model(self):
         """Load the trained model from disk, fallback to simple predictor if unavailable"""
         try:
-            # Load main model
+            # Check if model files exist first
             model_file = os.path.join(self.model_path, 'trained_model.pkl')
+            encoder_file = os.path.join(self.model_path, 'label_encoder.pkl')
+            metadata_file = os.path.join(self.model_path, 'model_metadata.pkl')
+            
+            if not os.path.exists(model_file):
+                raise FileNotFoundError(f"Model file not found: {model_file}")
+            
+            # Load main model
             with open(model_file, 'rb') as f:
                 self.model = pickle.load(f)
             
             # Load label encoder
-            encoder_file = os.path.join(self.model_path, 'label_encoder.pkl')
             with open(encoder_file, 'rb') as f:
                 self.label_encoder = pickle.load(f)
             

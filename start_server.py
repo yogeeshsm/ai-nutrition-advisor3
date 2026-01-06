@@ -1,27 +1,39 @@
-"""Start Flask server"""
-import sys
+"""
+Stable server runner using Flask development server
+Since waitress has issues in VS Code terminals, use Flask directly
+"""
 import os
+import sys
 
-# Set UTF-8 encoding to avoid emoji errors
+os.environ['FLASK_ENV'] = 'development'
 os.environ['PYTHONIOENCODING'] = 'utf-8'
 
-from app_full import app
+print("Loading application...")
+from flask_app import app
 
 if __name__ == "__main__":
-    print("=" * 60)
-    print("AI NUTRITION ADVISOR - ALL FEATURES + ML")
-    print("=" * 60)
-    print("Server: http://127.0.0.1:5000")
-    print("Routes: 50+ endpoints active")
-    print("ML Features: Collaborative + Content-Based + Hybrid")
-    print("=" * 60)
-    print("\nStarting Flask development server...")
-    print("Press Ctrl+C to stop\n")
+    print("="*60)
+    print("🍎 AI NUTRITION ADVISOR - SERVER READY")
+    print("="*60)
+    print("📍 Open in browser: http://127.0.0.1:5000")
+    print("📍 Press Ctrl+C to stop server")
+    print("="*60)
+    
     try:
-        app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False, threaded=True)
+        # Use Flask development server directly - more reliable in VS Code
+        app.run(
+            host='0.0.0.0', 
+            port=5000, 
+            debug=False,  # No auto-reload
+            threaded=True,  # Handle concurrent requests
+            use_reloader=False  # Don't restart on file changes
+        )
     except KeyboardInterrupt:
-        print("\n\nServer stopped by user")
+        print("\nServer stopped by user")
     except Exception as e:
-        print(f"\n\nERROR: {e}")
+        print(f"Error starting server: {e}")
         import traceback
         traceback.print_exc()
+        sys.exit(1)
+
+

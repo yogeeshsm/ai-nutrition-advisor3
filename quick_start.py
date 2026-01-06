@@ -27,6 +27,17 @@ print("\n✅ Core modules loaded")
 app = Flask(__name__)
 app.secret_key = 'nutrition-advisor-secret-key-2025'
 
+# Add translation function for templates
+@app.context_processor
+def inject_translation():
+    """Simple translation function - returns the key as-is (English)"""
+    return dict(
+        t=lambda key: key.replace('_', ' ').title(),
+        current_language='en',
+        languages={'en': 'English'},
+        translate=lambda text: text
+    )
+
 print("Initializing database...")
 try:
     db.initialize_database()

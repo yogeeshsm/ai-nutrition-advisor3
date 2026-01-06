@@ -1,0 +1,47 @@
+================================================================================
+   MALNUTRITION PREDICTION MODEL - ACCURACY REPORT
+================================================================================
+
+Generated: 2025-12-23 23:21:24
+
+================================================================================
+   OVERALL ACCURACY
+================================================================================
+
+Training Accuracy:     0.9705 (97.05%)
+Test Accuracy:         0.9420 (94.20%)
+
+================================================================================
+   CLASS-WISE ACCURACY
+================================================================================
+
+moderate       : 0.8500 (85.00%)
+normal         : 0.9803 (98.03%)
+severe         : 0.8429 (84.29%)
+
+================================================================================
+   CLASSIFICATION REPORT
+================================================================================
+
+              precision    recall  f1-score   support
+
+    moderate       0.88      0.85      0.87       220
+      normal       0.98      0.98      0.98       710
+      severe       0.74      0.84      0.79        70
+
+    accuracy                           0.94      1000
+   macro avg       0.87      0.89      0.88      1000
+weighted avg       0.94      0.94      0.94      1000
+
+================================================================================
+   GENERATED GRAPHS
+================================================================================
+
+1. 1_accuracy_comparison.png - Training vs Test accuracy
+2. 2_confusion_matrix.png - Prediction matrix by class
+3. 3_class_wise_accuracy.png - Accuracy for each class
+4. 4_feature_importance.png - Feature contributions
+5. 5_accuracy_vs_trees.png - Accuracy vs model complexity
+6. 6_prediction_distribution.png - Actual vs predicted distribution
+
+================================================================================

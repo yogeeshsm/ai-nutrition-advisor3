@@ -14,21 +14,6 @@ This application is designed to help Anganwadi workers create nutritionally bala
 
 ## ✨ Key Features
 
-### 🆕 NEW: Food Image Recognition (Computer Vision + ML)
-
-- **📸 AI Food Recognition**: Upload food photos → Get instant nutrition analysis
-- **📏 Portion Size Estimation**: Automatic small/medium/large detection (50-300g)
-- **🧠 MobileNetV2 Model**: Efficient deep learning optimized for mobile devices
-- **🍲 10 Indian Foods**: Rice, Ragi, Dal, Egg, Banana, Chapati, Chicken, Milk, Yogurt, Vegetables
-- **📊 Complete Nutrition**: 7 key nutrients - Calories, Protein, Carbs, Fats, Fiber, Iron, Calcium
-- **✅ Daily Assessment**: Compare against WHO/ICMR guidelines for children
-- **💡 Smart Recommendations**: Personalized suggestions to improve meal quality
-- **📱 Camera Support**: Take photos directly from mobile devices
-- **🔥 Real-time Analysis**: 2-second inference on CPU
-- **🎨 Beautiful UI**: Drag-and-drop upload, animated results, progress bars
-
-[📖 Read Complete Guide](FOOD_RECOGNITION_GUIDE.md) | [🚀 Quick Start](FOOD_RECOGNITION_QUICKSTART.md) | [📋 Summary](COMPLETE_SUMMARY.md)
-
 ### Core Features
 
 - **🤖 AI-Powered Optimization**: Uses linear programming (PuLP) to maximize nutritional value within budget

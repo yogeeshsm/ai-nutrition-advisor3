@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+
+{% block title %}Simple Nutrition Guide - For Parents{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-10 mx-auto">
+            <!-- Header -->
+            <div class="card border-0 shadow-lg mb-4" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <div class="card-body text-white text-center py-5">
+                    <i class="fas fa-heart fa-3x mb-3"></i>
+                    <h2 class="display-5 fw-bold mb-3">Simple Nutrition Guide</h2>
+                    <p class="lead mb-0">For parents of children 0-6 years</p>
+                    <p class="mb-0">Simple advice • Local foods • Easy to follow</p>
+                </div>
+            </div>
+
+            <!-- Instructions Card -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-info-circle text-primary"></i> How to Use
+                    </h5>
+                    <ol class="mb-0">
+                        <li>Tell us what your child has eaten in the last 2-3 days</li>
+                        <li>We will find what is missing</li>
+                        <li>Get ONE simple food to add to their diet</li>
+                    </ol>
+                </div>
+            </div>
+
+            <!-- Input Form -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body">
+                    <form id="simpleAdvisorForm">
+                        <!-- Child Age -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-baby"></i> Child's Age
+                            </label>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <input type="number" class="form-control" id="childAgeMonths" 
+                                           min="0" max="72" value="18" required>
+                                    <small class="text-muted">Age in months (0-72)</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Foods Eaten -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-utensils"></i> What has your child eaten in last 2-3 days?
+                            </label>
+                            <p class="text-muted small mb-2">
+                                Select all foods your child has eaten recently (tick the boxes)
+                            </p>
+                            
+                            <div class="row g-2">
+                                <!-- Common foods -->
+                                <div class="col-md-3 col-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" value="Rice" id="food_rice">
+                                        <label class="form-check-label" for="food_rice">Rice</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" value="Roti" id="food_roti">
+                                        <label class="form-check-label" for="food_roti">Roti/Chapati</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" value="Dal" id="food_dal">
+                                        <label class="form-check-label" for="food_dal">Dal</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" value="Milk" id="food_milk">
+                                        <label class="form-check-label" for="food_milk">Milk</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" value="Curd" id="food_curd">
+                                        <label class="form-check-label" for="food_curd">Curd</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" value="Egg" id="food_egg">
+                                        <label class="form-check-label" for="food_egg">Egg</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" value="Spinach" id="food_spinach">
+                                        <label class="form-check-label" for="food_spinach">Spinach/Palak</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" value="Carrot" id="food_carrot">
+                                        <label class="form-check-label" for="food_carrot">Carrot</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" value="Potato" id="food_potato">
+                                        <label class="form-check-label" for="food_potato">Potato</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" value="Ragi" id="food_ragi">
+                                        <label class="form-check-label" for="food_ragi">Ragi</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" value="Banana" id="food_banana">
+                                        <label class="form-check-label" for="food_banana">Banana</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" value="Jaggery" id="food_jaggery">
+                                        <label class="form-check-label" for="food_jaggery">Jaggery/Gur</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Other foods input -->
+                            <div class="mt-3">
+                                <label class="form-label small">Other foods (if any):</label>
+                                <input type="text" class="form-control" id="otherFoods" 
+                                       placeholder="Example: pumpkin, papaya, chicken">
+                                <small class="text-muted">Separate with commas</small>
+                            </div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-primary btn-lg px-5">
+                                <i class="fas fa-search"></i> Get Advice
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Results Card (Hidden initially) -->
+            <div id="resultsCard" class="card border-0 shadow-lg mb-4" style="display: none;">
+                <div class="card-body p-4">
+                    <h4 class="card-title text-center mb-4">
+                        <i class="fas fa-clipboard-check text-success"></i> Nutrition Advice
+                    </h4>
+
+                    <!-- Risk Level -->
+                    <div class="alert mb-3" id="riskAlert">
+                        <strong>Risk Level:</strong> <span id="riskLevel"></span>
+                    </div>
+
+                    <!-- Main Gap -->
+                    <div class="mb-3">
+                        <h6><i class="fas fa-exclamation-circle text-warning"></i> Main Nutrition Gap:</h6>
+                        <p class="lead" id="mainGap"></p>
+                    </div>
+
+                    <!-- Food Solution -->
+                    <div class="mb-3 p-3 bg-light rounded">
+                        <h6><i class="fas fa-utensils text-success"></i> One Food Fix:</h6>
+                        <h5 class="text-primary mb-0" id="foodSolution"></h5>
+                    </div>
+
+                    <!-- Frequency -->
+                    <div class="mb-3">
+                        <h6><i class="fas fa-calendar-alt text-info"></i> Frequency:</h6>
+                        <p class="mb-0" id="frequency"></p>
+                    </div>
+
+                    <!-- Parent Message -->
+                    <div class="alert alert-success mb-0">
+                        <h6 class="alert-heading">
+                            <i class="fas fa-comments"></i> Message for Parents:
+                        </h6>
+                        <p class="mb-0" id="parentMessage"></p>
+                    </div>
+
+                    <!-- Try Again Button -->
+                    <div class="text-center mt-4">
+                        <button class="btn btn-outline-primary" onclick="location.reload()">
+                            <i class="fas fa-redo"></i> Check Again
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('simpleAdvisorForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    // Collect selected foods
+    const selectedFoods = [];
+    document.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
+        selectedFoods.push(cb.value);
+    });
+    
+    // Add other foods
+    const otherFoods = document.getElementById('otherFoods').value;
+    if (otherFoods.trim()) {
+        const others = otherFoods.split(',').map(f => f.trim()).filter(f => f);
+        selectedFoods.push(...others);
+    }
+    
+    const childAge = parseInt(document.getElementById('childAgeMonths').value);
+    
+    // Send to API
+    try {
+        const response = await fetch('/api/simple-nutrition-advice', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                foods_eaten: selectedFoods,
+                child_age_months: childAge
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.error) {
+            alert('Error: ' + result.error);
+            return;
+        }
+        
+        // Display results
+        displayResults(result);
+        
+    } catch (error) {
+        alert('Error getting advice. Please try again.');
+        console.error(error);
+    }
+});
+
+function displayResults(result) {
+    // Set risk level with appropriate color
+    const riskAlert = document.getElementById('riskAlert');
+    const riskLevel = document.getElementById('riskLevel');
+    riskLevel.textContent = result.risk_level;
+    
+    riskAlert.className = 'alert mb-3';
+    if (result.risk_level === 'High') {
+        riskAlert.classList.add('alert-danger');
+    } else if (result.risk_level === 'Medium') {
+        riskAlert.classList.add('alert-warning');
+    } else {
+        riskAlert.classList.add('alert-success');
+    }
+    
+    // Set other fields
+    document.getElementById('mainGap').textContent = result.main_gap;
+    document.getElementById('foodSolution').textContent = result.food_solution;
+    document.getElementById('frequency').textContent = result.frequency;
+    document.getElementById('parentMessage').textContent = result.parent_message;
+    
+    // Show results card and scroll to it
+    const resultsCard = document.getElementById('resultsCard');
+    resultsCard.style.display = 'block';
+    resultsCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+</script>
+{% endblock %}

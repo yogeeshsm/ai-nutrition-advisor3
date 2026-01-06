@@ -156,7 +156,12 @@ class MealOptimizer:
         }
     
     def _generate_meal(self, ingredients, meal_type, meal_budget, variety_seed):
-        """Generate a single meal using optimization"""
+        """Generate a single meal using fast greedy selection"""
+        # Use greedy approach directly for speed
+        return self._greedy_meal_selection(ingredients, meal_type, meal_budget, variety_seed)
+    
+    def _greedy_meal_selection(self, ingredients, meal_type, meal_budget, variety_seed):
+        """Fast greedy algorithm - instant meal generation"""
         # Meal-specific ingredient preferences
         meal_preferences = {
             'breakfast': ['Grains', 'Dairy', 'Fruits'],
@@ -175,77 +180,37 @@ class MealOptimizer:
         if len(meal_ingredients) == 0:
             meal_ingredients = ingredients.copy()
         
-        # Add some randomness for variety
-        if len(meal_ingredients) > 5:
-            meal_ingredients = meal_ingredients.sample(
-                min(12, len(meal_ingredients)), 
-                random_state=variety_seed
-            )
-        
-        # Create optimization problem
-        prob = LpProblem(f"Meal_Optimization_{meal_type}", LpMaximize)
-        
-        # Decision variables: quantity in grams for each ingredient
-        ingredient_vars = {}
-        for idx, row in meal_ingredients.iterrows():
-            ingredient_vars[row['name']] = LpVariable(
-                f"qty_{row['name']}", 
-                lowBound=0, 
-                upBound=200  # Max 200g per ingredient per meal
-            )
-        
-        # Objective: Maximize nutritional value (protein + fiber + iron + calcium)
-        prob += lpSum([
-            ingredient_vars[row['name']] * (
-                row['protein_per_100g'] * 2 +  # Weight protein more
-                row['fiber_per_100g'] +
-                row['iron_per_100g'] * 0.5 +
-                row['calcium_per_100g'] * 0.01
-            ) / 100
-            for idx, row in meal_ingredients.iterrows()
-        ])
-        
-        # Constraint: Budget
-        prob += lpSum([
-            ingredient_vars[row['name']] * (row['cost_per_kg'] / 1000) * self.num_children
-            for idx, row in meal_ingredients.iterrows()
-        ]) <= meal_budget
-        
-        # Constraint: Minimum calories per meal per child
         target_calories = self.daily_requirements['calories'] * self.meal_distribution[meal_type]
-        prob += lpSum([
-            ingredient_vars[row['name']] * row['calories_per_100g'] / 100
-            for idx, row in meal_ingredients.iterrows()
-        ]) >= target_calories * 0.8  # At least 80% of target
         
-        # Constraint: Maximum calories (don't overeat)
-        prob += lpSum([
-            ingredient_vars[row['name']] * row['calories_per_100g'] / 100
-            for idx, row in meal_ingredients.iterrows()
-        ]) <= target_calories * 1.3  # Max 130% of target
+        # Sort by nutrition density (protein + fiber + iron) per rupee
+        meal_ingredients = meal_ingredients.copy()
+        meal_ingredients['value_score'] = (
+            meal_ingredients['protein_per_100g'] * 2 + 
+            meal_ingredients['fiber_per_100g'] + 
+            meal_ingredients['iron_per_100g'] * 0.5
+        ) / (meal_ingredients['cost_per_kg'] / 10)
         
-        # Solve
-        prob.solve(PULP_CBC_CMD(msg=0))
+        meal_ingredients = meal_ingredients.sort_values('value_score', ascending=False)
         
-        # Extract results
+        # Add variety using seed
+        np.random.seed(variety_seed)
+        if len(meal_ingredients) > 6:
+            meal_ingredients = meal_ingredients.head(10).sample(min(6, len(meal_ingredients)), random_state=variety_seed)
+        
         selected_items = []
+        total_calories = 0
+        total_cost = 0
         meal_nutrition = {
-            'calories': 0,
-            'protein': 0,
-            'carbs': 0,
-            'fat': 0,
-            'fiber': 0,
-            'iron': 0,
-            'calcium': 0
+            'calories': 0, 'protein': 0, 'carbs': 0, 'fat': 0,
+            'fiber': 0, 'iron': 0, 'calcium': 0
         }
-        meal_cost = 0
         
-        for idx, row in meal_ingredients.iterrows():
-            qty = ingredient_vars[row['name']].varValue
-            if qty and qty > 5:  # Only include if quantity > 5g
-                qty_per_child = round(qty, 1)
-                cost = (row['cost_per_kg'] / 1000) * qty_per_child * self.num_children
-                
+        # Greedily select top 3-4 ingredients
+        for idx, row in meal_ingredients.head(4).iterrows():
+            qty_per_child = 50  # Simple fixed quantity
+            cost = (row['cost_per_kg'] / 1000) * qty_per_child * self.num_children
+            
+            if total_cost + cost <= meal_budget:
                 selected_items.append({
                     'ingredient': row['name'],
                     'category': row['category'],
@@ -254,7 +219,6 @@ class MealOptimizer:
                     'cost': round(cost, 2)
                 })
                 
-                # Calculate nutrition (per child)
                 factor = qty_per_child / 100
                 meal_nutrition['calories'] += row['calories_per_100g'] * factor
                 meal_nutrition['protein'] += row['protein_per_100g'] * factor
@@ -263,17 +227,16 @@ class MealOptimizer:
                 meal_nutrition['fiber'] += row['fiber_per_100g'] * factor
                 meal_nutrition['iron'] += row['iron_per_100g'] * factor
                 meal_nutrition['calcium'] += row['calcium_per_100g'] * factor
-                
-                meal_cost += cost
+                total_cost += cost
+                total_calories += row['calories_per_100g'] * factor
         
-        # Round nutrition values
         for key in meal_nutrition:
             meal_nutrition[key] = round(meal_nutrition[key], 2)
         
         return {
             'items': selected_items,
             'nutrition': meal_nutrition,
-            'cost': round(meal_cost, 2)
+            'cost': round(total_cost, 2)
         }
     
     def _calculate_nutrition_score(self, weekly_nutrition):

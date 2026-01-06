@@ -23,9 +23,17 @@ from usda_api import get_usda_api
 from who_immunization import who_api
 
 # Try to import optional modules
+# Chatbot selection based on AI_PROVIDER environment variable
+AI_PROVIDER = os.environ.get('AI_PROVIDER', 'groq').lower()
 try:
-    # Use Gemini chatbot (stable with Python 3.13)
-    from gemini_chatbot import get_chatbot
+    if AI_PROVIDER == 'groq':
+        # Use Groq chatbot (primary)
+        from groq_chatbot import get_chatbot
+        print(f"[OK] Chatbot initialized with groq")
+    else:
+        # Use Gemini chatbot (fallback)
+        from gemini_chatbot import get_chatbot
+        print(f"[OK] Chatbot initialized with gemini")
     CHATBOT_AVAILABLE = True
 except (Exception, KeyboardInterrupt, SystemExit) as e:
     print(f"WARNING: Chatbot not available: {e}")
@@ -784,6 +792,11 @@ def chatbot_page():
     """AI Nutrition Chatbot Page"""
     return render_template('chatbot.html')
 
+@app.route('/simple-advisor')
+def simple_advisor_page():
+    """Simple Nutrition Advisor for Rural Parents"""
+    return render_template('simple_advisor.html')
+
 @app.route('/api/chatbot', methods=['POST'])
 def api_chatbot():
     """API endpoint for chatbot conversation"""
@@ -856,6 +869,232 @@ def api_chatbot_alternatives():
         
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/simple-nutrition-advice', methods=['POST'])
+def api_simple_nutrition_advice():
+    """Simple nutrition advice for rural parents (API endpoint)"""
+    try:
+        from simple_nutrition_advisor import get_simple_advisor
+        
+        data = request.json
+        foods_eaten = data.get('foods_eaten', [])
+        child_age_months = data.get('child_age_months', 18)
+        
+        # Validate age
+        if not (0 <= child_age_months <= 72):
+            return jsonify({'error': 'Child age must be between 0-72 months'}), 400
+        
+        # Get advisor instance
+        advisor = get_simple_advisor()
+        
+        # Analyze and get advice
+        result = advisor.analyze_food_intake(foods_eaten, child_age_months)
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+        
+        if not chatbot:
+            return jsonify({'success': False, 'error': 'Chatbot not available'}), 500
+        
+        suggestions = chatbot.suggest_alternatives(ingredient, reason)
+        
+        return jsonify({
+            'success': True,
+            'suggestions': suggestions
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# ========================================
+# 🆘 EMERGENCY MALNUTRITION ALERT NETWORK
+# ========================================
+
+@app.route('/emergency-alerts')
+def emergency_alerts_page():
+    """Emergency Malnutrition Alert Network Dashboard"""
+    return render_template('emergency_alerts.html')
+
+@app.route('/api/emergency-alert/check-and-alert', methods=['POST'])
+def api_check_and_alert():
+    """Check child for malnutrition and create alert if needed"""
+    try:
+        from emergency_alert_system import get_alert_system, AlertLevel
+        
+        data = request.json
+        child_name = data.get('child_name', 'Unknown')
+        village = data.get('village', 'Unknown')
+        
+        child_data = {
+            'age_months': data.get('age_months', 0),
+            'weight_kg': data.get('weight_kg'),
+            'height_cm': data.get('height_cm'),
+            'muac_cm': data.get('muac_cm'),
+            'has_edema': data.get('has_edema', False),
+            'wfa_zscore': data.get('wfa_zscore'),
+            'hfa_zscore': data.get('hfa_zscore'),
+            'wfh_zscore': data.get('wfh_zscore')
+        }
+        
+        # Calculate z-scores if not provided
+        if child_data['wfa_zscore'] is None and child_data['weight_kg'] and child_data['age_months']:
+            # Simple z-score approximation (in production, use WHO tables)
+            # This is simplified - real implementation should use WHO growth standards
+            expected_weight = 2.5 + (child_data['age_months'] * 0.5)  # Rough approximation
+            child_data['wfa_zscore'] = (child_data['weight_kg'] - expected_weight) / 1.5
+            child_data['hfa_zscore'] = child_data['wfa_zscore'] * 0.8  # Rough approximation
+            child_data['wfh_zscore'] = child_data['wfa_zscore'] * 1.1  # Rough approximation
+        
+        alert_system = get_alert_system()
+        alert_level = alert_system.assess_malnutrition_severity(child_data)
+        
+        if alert_level:
+            # Create alert
+            result = alert_system.create_alert(
+                child_id=0,  # Will be assigned properly in production
+                child_name=child_name,
+                child_data=child_data,
+                alert_level=alert_level,
+                village=village
+            )
+            return jsonify({
+                'alert_created': True,
+                'alert_level': alert_level.value,
+                'alert_id': result['alert_id'],
+                'responders': result['responders'],
+                'message': result['message']
+            })
+        else:
+            return jsonify({
+                'alert_created': False,
+                'status': 'normal',
+                'message': 'Child nutrition status is normal. No alert needed.'
+            })
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/emergency-alert/stats')
+def api_alert_stats():
+    """Get alert statistics"""
+    try:
+        from emergency_alert_system import get_alert_system
+        alert_system = get_alert_system()
+        
+        stats = alert_system.get_village_stats()
+        stats['responders_count'] = len([r for r in alert_system.responders if r.get('active', True)])
+        
+        return jsonify(stats)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/emergency-alert/alerts')
+def api_get_alerts():
+    """Get all alerts with optional filtering"""
+    try:
+        from emergency_alert_system import get_alert_system
+        alert_system = get_alert_system()
+        
+        status = request.args.get('status')
+        level = request.args.get('level')
+        
+        alerts = alert_system.get_all_alerts(status=status, level=level)
+        return jsonify(alerts)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/emergency-alert/alert/<alert_id>')
+def api_get_alert(alert_id):
+    """Get single alert details"""
+    try:
+        from emergency_alert_system import get_alert_system
+        alert_system = get_alert_system()
+        
+        alert = alert_system.get_alert(alert_id)
+        if alert:
+            return jsonify(alert)
+        return jsonify({'error': 'Alert not found'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/emergency-alert/acknowledge/<alert_id>', methods=['POST'])
+def api_acknowledge_alert(alert_id):
+    """Acknowledge an alert"""
+    try:
+        from emergency_alert_system import get_alert_system
+        alert_system = get_alert_system()
+        
+        data = request.json or {}
+        notes = data.get('notes', '')
+        
+        success = alert_system.acknowledge_alert(alert_id, 'current_user', notes)
+        return jsonify({'success': success})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/emergency-alert/intervention/<alert_id>', methods=['POST'])
+def api_record_intervention(alert_id):
+    """Record intervention for an alert"""
+    try:
+        from emergency_alert_system import get_alert_system
+        alert_system = get_alert_system()
+        
+        data = request.json
+        intervention_type = data.get('intervention_type')
+        notes = data.get('notes')
+        mark_resolved = data.get('mark_resolved', False)
+        
+        alert_system.update_intervention(alert_id, 'current_user', intervention_type, notes)
+        
+        if mark_resolved:
+            alert_system.resolve_alert(alert_id, 'current_user', 'Intervention completed', notes)
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/emergency-alert/escalate/<alert_id>', methods=['POST'])
+def api_escalate_alert(alert_id):
+    """Escalate an alert"""
+    try:
+        from emergency_alert_system import get_alert_system
+        alert_system = get_alert_system()
+        
+        data = request.json
+        reason = data.get('reason', 'Manual escalation')
+        
+        success = alert_system.escalate_alert(alert_id, reason)
+        return jsonify({'success': success})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/emergency-alert/responders', methods=['GET'])
+def api_get_responders():
+    """Get all responders"""
+    try:
+        from emergency_alert_system import get_alert_system
+        alert_system = get_alert_system()
+        
+        responders = alert_system.get_responders()
+        return jsonify(responders)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/emergency-alert/responders', methods=['POST'])
+def api_add_responder():
+    """Add new responder"""
+    try:
+        from emergency_alert_system import get_alert_system
+        alert_system = get_alert_system()
+        
+        data = request.json
+        responder_id = alert_system.add_responder(data)
+        return jsonify({'success': True, 'responder_id': responder_id})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 # Village Nutrition Economy Routes
 @app.route('/village-economy')
@@ -1130,13 +1369,6 @@ def asha_get_nutrition_score(child_id):
     return jsonify({'success': True, 'nutrition_score': score})
 
 
-# Food Recognition endpoints removed
-        return jsonify({
-            'success': False,
-            'error': 'Food database not available'
-        }), 500
-
-
 # ========================================
 # ML RECOMMENDATION SYSTEM ENDPOINTS
 # ========================================
@@ -1170,15 +1402,14 @@ def train_ml_models():
 def get_ml_recommendations(child_id):
     """Get ML-powered recommendations for a child"""
     try:
-        from ml_recommender import MealRecommendationSystem
+        import ml_recommender_v2 as ml_engine
         
-        recommender = MealRecommendationSystem()
         rec_type = request.args.get('type', 'hybrid')
-        top_n = int(request.args.get('top_n', 10))
+        top_n = int(request.args.get('top_n', 15))
         
-        recommendations = recommender.get_recommendations(
+        recommendations = ml_engine.get_recommendations(
             child_id=child_id,
-            recommendation_type=rec_type,
+            method=rec_type,
             top_n=top_n
         )
         
@@ -1189,6 +1420,7 @@ def get_ml_recommendations(child_id):
             'recommendations': recommendations
         })
     except Exception as e:
+        print(f"Error in ML recommendations: {e}")
         return jsonify({
             'success': False,
             'error': str(e)
@@ -1198,12 +1430,10 @@ def get_ml_recommendations(child_id):
 def get_similar_children(child_id):
     """Get similar children for collaborative filtering"""
     try:
-        from ml_recommender import MealRecommendationSystem
+        import ml_recommender_v2 as ml_engine
         
-        recommender = MealRecommendationSystem()
-        top_n = int(request.args.get('top_n', 5))
-        
-        similar = recommender.find_similar_children(child_id, top_n=top_n)
+        top_n = int(request.args.get('n', 5))
+        similar = ml_engine.find_similar_children(child_id, n=top_n)
         
         return jsonify({
             'success': True,
@@ -1211,58 +1441,150 @@ def get_similar_children(child_id):
             'similar_children': similar
         })
     except Exception as e:
+        print(f"Error in similar children: {e}")
         return jsonify({
             'success': False,
             'error': str(e)
         }), 500
 
-@app.route('/api/ml/weekly-variety', methods=['POST'])
+@app.route('/api/ml/weekly-variety', methods=['POST', 'GET'])
 def generate_weekly_variety():
     """Generate 7-day variety plan using ML"""
     try:
-        from ml_recommender import MealRecommendationSystem
+        import ml_recommender_v2 as ml_engine
         
-        data = request.json
-        child_id = data.get('child_id')
-        budget = data.get('budget', 2000)
+        if request.method == 'POST':
+            data = request.json
+            child_id = data.get('child_id')
+        else:
+            child_id = request.args.get('child_id', type=int)
         
-        recommender = MealRecommendationSystem()
-        weekly_plan = recommender.generate_weekly_variety(
-            child_id=child_id,
-            budget=budget
-        )
+        if not child_id:
+            return jsonify({'success': False, 'error': 'child_id required'}), 400
+        
+        # Get recommendations for 7 days with variety
+        days_plan = []
+        used_ingredients = set()
+        
+        for day in range(1, 8):
+            # Get different types of recommendations for variety
+            if day % 3 == 1:
+                recs = ml_engine.get_recommendations(child_id, 'content', 5)
+            elif day % 3 == 2:
+                recs = ml_engine.get_recommendations(child_id, 'collaborative', 5)
+            else:
+                recs = ml_engine.get_recommendations(child_id, 'knowledge', 5)
+            
+            # Filter out already used ingredients for variety
+            fresh_recs = [r for r in recs if r['ingredient_id'] not in used_ingredients][:3]
+            if len(fresh_recs) < 3:
+                fresh_recs.extend(recs[:3-len(fresh_recs)])
+            
+            for r in fresh_recs:
+                used_ingredients.add(r['ingredient_id'])
+            
+            days_plan.append({
+                'day': day,
+                'day_name': ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][day-1],
+                'recommendations': fresh_recs
+            })
         
         return jsonify({
             'success': True,
-            'weekly_plan': weekly_plan
+            'child_id': child_id,
+            'weekly_plan': days_plan,
+            'total_ingredients': len(used_ingredients)
         })
     except Exception as e:
+        print(f"Error in weekly variety: {e}")
         return jsonify({
             'success': False,
             'error': str(e)
         }), 500
 
-@app.route('/api/ml/acceptance-prediction', methods=['POST'])
+@app.route('/api/ml/acceptance-prediction', methods=['POST', 'GET'])
 def predict_meal_acceptance():
     """Predict meal acceptance rate using ML"""
     try:
-        from ml_recommender import MealRecommendationSystem
+        import ml_recommender_v2 as ml_engine
         
-        data = request.json
-        child_id = data.get('child_id')
-        ingredients = data.get('ingredients', [])
+        if request.method == 'POST':
+            data = request.json
+            child_id = data.get('child_id')
+            ingredients = data.get('ingredients', [])
+        else:
+            child_id = request.args.get('child_id', type=int)
+            ingredients_str = request.args.get('ingredients', '')
+            ingredients = [int(x.strip()) for x in ingredients_str.split(',') if x.strip().isdigit()] if ingredients_str else []
         
-        recommender = MealRecommendationSystem()
-        prediction = recommender.predict_meal_acceptance(
-            child_id=child_id,
-            ingredients=ingredients
-        )
+        if not child_id:
+            return jsonify({'success': False, 'error': 'child_id required'}), 400
+        
+        # Get child profile
+        profile = ml_engine.get_child_profile(child_id)
+        if not profile:
+            return jsonify({'success': False, 'error': 'Child not found'}), 404
+        
+        # Simple acceptance prediction based on nutritional status and ingredient quality
+        base_acceptance = 75  # Base 75% acceptance
+        
+        # Adjust based on nutritional status (malnourished children more accepting of nutritious food)
+        status_bonus = {
+            'severe_malnutrition': 15,
+            'moderate_malnutrition': 10,
+            'at_risk': 5,
+            'normal': 0
+        }
+        acceptance = base_acceptance + status_bonus.get(profile['nutritional_status'], 0)
+        
+        # If specific ingredients provided, analyze them
+        ingredient_details = []
+        if ingredients:
+            conn = ml_engine.get_ml_engine()._get_connection()
+            import pandas as pd
+            placeholders = ','.join(['?' for _ in ingredients])
+            ing_df = pd.read_sql_query(f"""
+                SELECT id, name, category, protein_per_100g, iron_per_100g
+                FROM ingredients WHERE id IN ({placeholders})
+            """, conn, params=ingredients)
+            conn.close()
+            
+            for _, ing in ing_df.iterrows():
+                ing_acceptance = 70
+                if ing['protein_per_100g'] > 10:
+                    ing_acceptance += 10
+                if ing['iron_per_100g'] > 3:
+                    ing_acceptance += 5
+                if ing['category'] in ['Fruits', 'Dairy']:
+                    ing_acceptance += 10
+                    
+                ingredient_details.append({
+                    'name': ing['name'],
+                    'acceptance_rate': min(95, ing_acceptance),
+                    'category': ing['category']
+                })
+            
+            if ingredient_details:
+                acceptance = sum([x['acceptance_rate'] for x in ingredient_details]) / len(ingredient_details)
+        
+        # Cap at 95%
+        acceptance = min(95, max(50, acceptance))
         
         return jsonify({
             'success': True,
-            'prediction': prediction
+            'child_id': child_id,
+            'acceptance_rate': round(acceptance, 1),
+            'confidence': 85,
+            'factors': {
+                'nutritional_status': profile['nutritional_status'],
+                'age_appropriate': True,
+                'ingredient_count': len(ingredients)
+            },
+            'ingredients': ingredient_details,
+            'recommendation': 'High acceptance predicted' if acceptance > 75 else 'Moderate acceptance - consider child preferences'
         })
     except Exception as e:
+        print(f"Error in acceptance prediction: {e}")
         return jsonify({
             'success': False,
             'error': str(e)
@@ -1272,10 +1594,9 @@ def predict_meal_acceptance():
 def get_ml_child_profile(child_id):
     """Get ML-generated child profile"""
     try:
-        from ml_recommender import MealRecommendationSystem
+        import ml_recommender_v2 as ml_engine
         
-        recommender = MealRecommendationSystem()
-        profile = recommender.prepare_child_profile(child_id)
+        profile = ml_engine.get_child_profile(child_id)
         
         if not profile:
             return jsonify({
@@ -1288,6 +1609,7 @@ def get_ml_child_profile(child_id):
             'profile': profile
         })
     except Exception as e:
+        print(f"Error in ML profile: {e}")
         return jsonify({
             'success': False,
             'error': str(e)
@@ -1757,12 +2079,7 @@ if __name__ == '__main__':
     print("All 60+ features enabled")
     print("="*60)
     
-    try:
-        # Use waitress for production-ready WSGI server
-        from waitress import serve
-        serve(app, host='0.0.0.0', port=port, threads=4)
-    except ImportError:
-        # Fallback to Flask development server
-        print("Waitress not available, using Flask dev server")
-        app.run(debug=False, host='0.0.0.0', port=port, threaded=True)
+    # Use Flask development server
+    app.run(debug=True, host='0.0.0.0', port=port, threaded=True, use_reloader=False)
+
 

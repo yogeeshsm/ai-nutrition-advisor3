@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Model Training Accuracy Graphs - AI Nutrition Advisor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2E86AB 0%, #A23B72 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .metrics-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            padding: 40px;
+            background: #f8f9fa;
+        }
+        
+        .metric-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 12px rgba(0,0,0,0.15);
+        }
+        
+        .metric-card h3 {
+            color: #667eea;
+            font-size: 1em;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .metric-card .value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #2E86AB;
+            margin-bottom: 5px;
+        }
+        
+        .metric-card .label {
+            font-size: 0.9em;
+            color: #666;
+        }
+        
+        .graphs-section {
+            padding: 40px;
+        }
+        
+        .section-title {
+            font-size: 2em;
+            color: #2E86AB;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #667eea;
+        }
+        
+        .graph-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .graph-card {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .graph-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 24px rgba(0,0,0,0.15);
+        }
+        
+        .graph-title {
+            background: linear-gradient(135deg, #2E86AB 0%, #A23B72 100%);
+            color: white;
+            padding: 15px 20px;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+        
+        .graph-image {
+            width: 100%;
+            display: block;
+            padding: 20px;
+            background: white;
+        }
+        
+        .graph-description {
+            padding: 20px;
+            background: #f8f9fa;
+            border-top: 2px solid #e9ecef;
+            color: #555;
+            line-height: 1.6;
+        }
+        
+        .footer {
+            background: #2c3e50;
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .footer p {
+            opacity: 0.8;
+        }
+        
+        @media (max-width: 768px) {
+            .graph-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 1.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🎯 Model Training Accuracy Report</h1>
+            <p>Malnutrition Prediction System - Performance Analysis</p>
+        </div>
+        
+        <!-- Metrics Summary -->
+        <div class="metrics-summary">
+            <div class="metric-card">
+                <h3>Training Accuracy</h3>
+                <div class="value">97.05%</div>
+                <div class="label">High performance on training data</div>
+            </div>
+            
+            <div class="metric-card">
+                <h3>Test Accuracy</h3>
+                <div class="value">94.20%</div>
+                <div class="label">Excellent generalization</div>
+            </div>
+            
+            <div class="metric-card">
+                <h3>Normal Class</h3>
+                <div class="value">98.03%</div>
+                <div class="label">Best performing class</div>
+            </div>
+            
+            <div class="metric-card">
+                <h3>Dataset Size</h3>
+                <div class="value">5,000</div>
+                <div class="label">Total training samples</div>
+            </div>
+        </div>
+        
+        <!-- Graphs Section -->
+        <div class="graphs-section">
+            <h2 class="section-title">📊 Training Performance Visualizations</h2>
+            
+            <div class="graph-grid">
+                <!-- Graph 1 -->
+                <div class="graph-card">
+                    <div class="graph-title">1. Training vs Test Accuracy</div>
+                    <img src="1_accuracy_comparison.png" alt="Accuracy Comparison" class="graph-image">
+                    <div class="graph-description">
+                        Direct comparison showing excellent generalization with minimal overfitting. 
+                        The small gap (2.85%) between training and test accuracy indicates a well-balanced model.
+                    </div>
+                </div>
+                
+                <!-- Graph 2 -->
+                <div class="graph-card">
+                    <div class="graph-title">2. Confusion Matrix</div>
+                    <img src="2_confusion_matrix.png" alt="Confusion Matrix" class="graph-image">
+                    <div class="graph-description">
+                        Shows the model's prediction accuracy for each nutrition status class. 
+                        Strong diagonal values indicate high accuracy across all classes.
+                    </div>
+                </div>
+                
+                <!-- Graph 3 -->
+                <div class="graph-card">
+                    <div class="graph-title">3. Class-Wise Accuracy</div>
+                    <img src="3_class_wise_accuracy.png" alt="Class-wise Accuracy" class="graph-image">
+                    <div class="graph-description">
+                        Breakdown of prediction accuracy for each nutrition status: Normal (98.03%), 
+                        Moderate (85.00%), and Severe (84.29%) malnutrition cases.
+                    </div>
+                </div>
+                
+                <!-- Graph 4 -->
+                <div class="graph-card">
+                    <div class="graph-title">4. Feature Importance</div>
+                    <img src="4_feature_importance.png" alt="Feature Importance" class="graph-image">
+                    <div class="graph-description">
+                        Identifies which features (age, weight, height, MUAC, BMI) contribute most 
+                        to accurate predictions. Helps understand the model's decision-making process.
+                    </div>
+                </div>
+                
+                <!-- Graph 5 -->
+                <div class="graph-card">
+                    <div class="graph-title">5. Accuracy vs Number of Trees</div>
+                    <img src="5_accuracy_vs_trees.png" alt="Accuracy vs Trees" class="graph-image">
+                    <div class="graph-description">
+                        Demonstrates how model complexity (number of trees) affects accuracy. 
+                        Shows optimal performance achieved with 200 trees.
+                    </div>
+                </div>
+                
+                <!-- Graph 6 -->
+                <div class="graph-card">
+                    <div class="graph-title">6. Prediction Distribution</div>
+                    <img src="6_prediction_distribution.png" alt="Prediction Distribution" class="graph-image">
+                    <div class="graph-description">
+                        Compares actual vs predicted distribution of nutrition statuses. 
+                        Close alignment indicates balanced and accurate predictions.
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Performance Summary -->
+            <div class="metric-card" style="margin-top: 30px;">
+                <h3>📈 Model Performance Summary</h3>
+                <div class="graph-description" style="background: white; border: none;">
+                    <p><strong>Overall Assessment:</strong> The Random Forest model demonstrates excellent performance 
+                    with 94.20% test accuracy. The model shows:</p>
+                    <ul style="text-align: left; margin-top: 15px; line-height: 1.8;">
+                        <li>✅ <strong>Strong Generalization:</strong> Minimal overfitting (2.85% gap)</li>
+                        <li>✅ <strong>Balanced Performance:</strong> Good accuracy across all classes</li>
+                        <li>✅ <strong>Optimal Complexity:</strong> 200 trees provide best results</li>
+                        <li>✅ <strong>Feature Utilization:</strong> All features contribute meaningfully</li>
+                        <li>✅ <strong>Production Ready:</strong> Reliable for real-world deployment</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="footer">
+            <p>Generated on December 23, 2025 | AI Nutrition Advisor System</p>
+            <p style="margin-top: 10px; font-size: 0.9em;">
+                Malnutrition Prediction Model using Random Forest Classification
+            </p>
+        </div>
+    </div>
+</body>
+</html>

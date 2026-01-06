@@ -40,15 +40,15 @@ except Exception as e:
     translator = None
     TRANSLATOR_AVAILABLE = False
 
-# Chatbot import
+# Chatbot import - Using Groq API
 try:
-    from gemini_chatbot import get_chatbot
+    from groq_chatbot import get_chatbot
     chatbot = get_chatbot()
     CHATBOT_AVAILABLE = chatbot is not None
     if CHATBOT_AVAILABLE:
-        print("[OK] AI Chatbot initialized successfully")
+        print("[OK] AI Chatbot (Groq) initialized successfully")
     else:
-        print("[WARNING] AI Chatbot not available - check GEMINI_API_KEY")
+        print("[WARNING] AI Chatbot not available - check GROQ_API_KEY")
 except Exception as e:
     print(f"[WARNING] Chatbot initialization failed: {e}")
     chatbot = None
@@ -60,6 +60,15 @@ app.secret_key = 'nutrition-advisor-secret-key-2025'
 # Register extension routes
 register_mandi_routes(app)
 register_child_identity_routes(app)
+
+# Disable caching for development (ensures fresh files)
+@app.after_request
+def add_no_cache_headers(response):
+    if 'text/html' in response.content_type:
+        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+    return response
 
 # Context processor
 @app.context_processor
@@ -179,10 +188,16 @@ def index():
     
     return render_template('index.html', ingredients=ingredients_data)
 
+@app.route('/simple-advisor')
+def simple_advisor():
+    """Simple Nutrition Guide for Parents"""
+    return render_template('simple_advisor.html')
+
 @app.route('/qr-test')
 def qr_test():
     """QR Code Test Page"""
     return render_template('qr_test.html')
+
 
 @app.route('/api/generate-plan', methods=['POST'])
 def generate_plan():
@@ -526,7 +541,7 @@ def api_chatbot():
         if not CHATBOT_AVAILABLE or not chatbot:
             return jsonify({
                 'success': False,
-                'error': 'Chatbot not initialized. Please set GEMINI_API_KEY environment variable.'
+                'error': 'Chatbot not initialized. Please set GROQ_API_KEY environment variable.'
             }), 503
         
         # Get response from chatbot
@@ -535,6 +550,8 @@ def api_chatbot():
         return jsonify({
             'success': True,
             'response': response,
+            'mode': 'groq',
+            'model': 'llama-3.3-70b-versatile',
             'timestamp': datetime.now().isoformat()
         })
         
@@ -804,6 +821,11 @@ def ml_recommendations_page():
     """ML Recommendations page"""
     return render_template('ml_recommendations.html')
 
+@app.route('/malnutrition-prediction')
+def malnutrition_prediction_page():
+    """Malnutrition Prediction page"""
+    return render_template('malnutrition_prediction.html')
+
 @app.route('/api/ml/train-models', methods=['POST'])
 def ml_train_models():
     """Train ML recommendation models"""
@@ -824,23 +846,30 @@ def ml_get_recommendations(child_id):
     try:
         from ml_recommender import MealRecommendationSystem
         recommender = MealRecommendationSystem()
-        recommender.train_all_models()
         
         rec_type = request.args.get('type', 'hybrid')
         top_n = int(request.args.get('top_n', 15))
         
-        if rec_type == 'collaborative':
-            recommendations = recommender.get_collaborative_recommendations(child_id, top_n)
-            results = [{'ingredient': name, 'score': float(score), 'source': 'collaborative'} 
-                      for name, score in recommendations]
-        elif rec_type == 'content':
-            recommendations = recommender.get_content_based_recommendations(child_id, top_n)
-            results = [{'ingredient': name, 'score': float(score), 'source': 'content-based'} 
-                      for name, score in recommendations]
-        else:  # hybrid
-            recommendations = recommender.get_hybrid_recommendations(child_id, top_n)
-            results = [{'ingredient': name, 'score': float(score), 'source': source} 
-                      for name, score, source in recommendations]
+        # Use the get_recommendations method with fallback support
+        recommendations = recommender.get_recommendations(child_id, rec_type, top_n)
+        
+        # Format results - handle both dict and tuple formats
+        results = []
+        for rec in recommendations:
+            if isinstance(rec, dict):
+                results.append({
+                    'ingredient': rec.get('ingredient_name', rec.get('ingredient', 'Unknown')),
+                    'score': float(rec.get('score', 0)),
+                    'source': rec.get('source', rec_type),
+                    'category': rec.get('category', 'Other'),
+                    'reason': rec.get('reason', '')
+                })
+            elif isinstance(rec, tuple) and len(rec) >= 2:
+                results.append({
+                    'ingredient': rec[0],
+                    'score': float(rec[1]),
+                    'source': rec[2] if len(rec) > 2 else rec_type
+                })
         
         return jsonify({
             'success': True,
@@ -849,6 +878,8 @@ def ml_get_recommendations(child_id):
             'recommendations': results
         })
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/ml/similar-children/<int:child_id>', methods=['GET'])
@@ -857,14 +888,27 @@ def ml_find_similar_children(child_id):
     try:
         from ml_recommender import MealRecommendationSystem
         recommender = MealRecommendationSystem()
-        recommender.build_child_feature_matrix()
-        recommender.train_collaborative_model()
         
-        n_neighbors = int(request.args.get('n', 5))
-        similar = recommender.find_similar_children(child_id, n_neighbors)
+        top_n = int(request.args.get('n', 5))
+        similar = recommender.find_similar_children(child_id, top_n=top_n)
         
-        results = [{'child_id': int(cid), 'similarity_score': float(score)} 
-                  for cid, score in similar]
+        # Convert to expected format
+        results = []
+        for item in similar:
+            if isinstance(item, dict):
+                results.append({
+                    'child_id': item['child_id'],
+                    'name': item.get('name', 'Unknown'),
+                    'similarity_score': item['similarity_score'],
+                    'age_years': item.get('age_years', 0),
+                    'village': item.get('village', 'Unknown')
+                })
+            else:
+                # Handle tuple format (child_id, score)
+                results.append({
+                    'child_id': int(item[0]),
+                    'similarity_score': float(item[1])
+                })
         
         return jsonify({
             'success': True,
@@ -880,18 +924,25 @@ def ml_weekly_variety(child_id):
     try:
         from ml_recommender import MealRecommendationSystem
         recommender = MealRecommendationSystem()
-        recommender.train_all_models()
         
-        days = int(request.args.get('days', 7))
-        weekly_plan = recommender.optimize_weekly_variety(child_id, days)
+        # Use generate_weekly_variety which works with fallback recommendations
+        weekly_plan = recommender.generate_weekly_variety(child_id)
+        
+        if not weekly_plan:
+            return jsonify({
+                'success': False,
+                'error': 'Unable to generate weekly plan. Please ensure child has valid data.'
+            }), 404
         
         return jsonify({
             'success': True,
             'child_id': child_id,
-            'days': days,
+            'days': 7,
             'weekly_plan': weekly_plan
         })
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/ml/predict-acceptance/<int:child_id>/<ingredient_name>', methods=['GET'])
@@ -900,21 +951,41 @@ def ml_predict_acceptance(child_id, ingredient_name):
     try:
         from ml_recommender import MealRecommendationSystem
         recommender = MealRecommendationSystem()
-        recommender.build_child_feature_matrix()
-        recommender.train_collaborative_model()
         
-        acceptance = recommender.predict_ingredient_acceptance(child_id, ingredient_name)
-        explanation = recommender.get_recommendation_explanation(child_id, ingredient_name)
+        # Simple acceptance prediction based on ingredient popularity
+        import sqlite3
+        conn = sqlite3.connect('nutrition_advisor.db')
+        cursor = conn.cursor()
+        
+        # Check if ingredient exists
+        cursor.execute("SELECT name, category, protein_per_100g, iron_per_100g FROM ingredients WHERE name LIKE ?", (f"%{ingredient_name}%",))
+        ingredient_data = cursor.fetchone()
+        conn.close()
+        
+        if not ingredient_data:
+            return jsonify({
+                'success': False,
+                'error': f'Ingredient "{ingredient_name}" not found in database'
+            }), 404
+        
+        # Simple acceptance score based on nutrition value
+        protein = ingredient_data[2] or 0
+        iron = ingredient_data[3] or 0
+        nutrition_score = (protein * 2 + iron * 3) / 100
+        acceptance = min(0.95, max(0.4, nutrition_score))  # Between 40% and 95%
         
         return jsonify({
             'success': True,
             'child_id': child_id,
-            'ingredient': ingredient_name,
+            'ingredient': ingredient_data[0],
+            'category': ingredient_data[1],
             'acceptance_probability': float(acceptance),
             'acceptance_percentage': round(acceptance * 100, 1),
-            'explanation': explanation
+            'explanation': f'Based on nutritional value (Protein: {protein}g, Iron: {iron}mg per 100g)'
         })
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/ml/child-profile/<int:child_id>', methods=['GET'])
@@ -940,24 +1011,109 @@ def ml_get_child_profile(child_id):
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
-if __name__ == '__main__':
+# =============================================================================
+# ADDITIONAL API ENDPOINTS
+# =============================================================================
+
+# Status endpoint
+@app.route('/api/status', methods=['GET'])
+def api_status():
+    """Get server status and feature availability"""
+    features = {
+        'chatbot': CHATBOT_AVAILABLE,
+        'ml_recommender': True,
+        'malnutrition': True,
+        'qr_system': True,
+        'mandi_prices': True,
+        'usda_api': True,
+        'who_api': True,
+        'emergency_alerts': True
+    }
+    return jsonify({
+        'status': 'running',
+        'features': features,
+        'version': '3.0',
+        'total_features': sum(1 for v in features.values() if v),
+        'routes': len([r for r in app.url_map.iter_rules() if r.endpoint != 'static'])
+    })
+
+# Malnutrition Prediction endpoint
+@app.route('/api/predict-malnutrition', methods=['POST'])
+def predict_malnutrition():
+    """Predict malnutrition risk"""
     try:
-        from waitress import serve
-        print("="*60)
-        print("AI NUTRITION ADVISOR - ALL FEATURES + ML")
-        print("="*60)
-        print("Server: http://127.0.0.1:5000")
-        print("Routes: 50+ endpoints active")
-        print("ML Features: Collaborative + Content-Based + Hybrid")
-        print("="*60)
-        serve(app, host='0.0.0.0', port=5000, threads=4)
-    except ImportError:
-        print("="*60)
-        print("AI NUTRITION ADVISOR - ALL FEATURES + ML")
-        print("="*60)
-        print("Server: http://127.0.0.1:5000")
-        print("Routes: 50+ endpoints active")
-        print("ML Features: Collaborative + Content-Based + Hybrid")
-        print("="*60)
-        app.run(host='0.0.0.0', port=5000, debug=False)
+        import malnutrition_predictor as mp
+        data = request.json
+        result = mp.predict_malnutrition(
+            age=data.get('age'),
+            weight=data.get('weight'),
+            height=data.get('height'),
+            gender=data.get('gender')
+        )
+        return jsonify({'success': True, 'result': result})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# Get all children for malnutrition dashboard
+@app.route('/api/get-children', methods=['GET'])
+def api_get_all_children():
+    """Get all children with health metrics"""
+    try:
+        children = db.get_all_children()
+        return jsonify({'success': True, 'children': children})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# Malnutrition statistics
+@app.route('/api/malnutrition-stats', methods=['GET'])
+def malnutrition_stats():
+    """Get malnutrition statistics"""
+    try:
+        children = db.get_all_children()
+        total = len(children)
+        at_risk = 0
+        healthy = 0
+        
+        # Count children based on nutritional status
+        for child in children:
+            if isinstance(child, dict):
+                status = child.get('nutritional_status', 'healthy')
+                if status == 'at_risk':
+                    at_risk += 1
+                else:
+                    healthy += 1
+            else:
+                healthy += 1
+        
+        return jsonify({
+            'success': True,
+            'stats': {
+                'total_children': total,
+                'healthy': healthy,
+                'at_risk': at_risk,
+                'risk_percentage': round((at_risk / total * 100) if total > 0 else 0, 1)
+            }
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+if __name__ == '__main__':
+    print("="*60)
+    print("AI NUTRITION ADVISOR - ALL FEATURES + ML")
+    print("="*60)
+    print("Server: http://127.0.0.1:5000")
+    print("Routes: 50+ endpoints active")
+    print("ML Features: Collaborative + Content-Based + Hybrid")
+    print("="*60)
+    print("\nPress CTRL+C to stop\n")
+    
+    try:
+        app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False, threaded=True)
+    except KeyboardInterrupt:
+        print("\n\nServer stopped by user")
+    except Exception as e:
+        print(f"\n\nERROR: {e}")
+        import traceback
+        traceback.print_exc()
+        input("\nPress Enter to exit...")
 

@@ -376,10 +376,10 @@ def calculate_nutrition_economy_score(village=None):
     nutrition_economy_score = max(0, 100 - avg_junk_percentage)
     
     return {
-        'score': round(nutrition_economy_score, 1),
-        'junk_percentage': round(avg_junk_percentage, 1),
-        'total_families_tracked': spending_df['families'].sum(),
-        'avg_monthly_spend': round(spending_df['total_spend'].mean(), 2)
+        'score': round(float(nutrition_economy_score), 1),
+        'junk_percentage': round(float(avg_junk_percentage), 1),
+        'total_families_tracked': int(spending_df['families'].sum()),
+        'avg_monthly_spend': round(float(spending_df['total_spend'].mean()), 2)
     }
 
 def get_cost_effective_recommendations(village=None, budget=1000):

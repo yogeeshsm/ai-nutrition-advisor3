@@ -21,7 +21,6 @@ Access the application at: **http://127.0.0.1:5000**
 | Feature | URL | Description |
 |---------|-----|-------------|
 | **Nutrition Lookup** | http://127.0.0.1:5000/nutrition-lookup | Search USDA food database for accurate nutrition data |
-| **Food Image Recognition** | http://127.0.0.1:5000/food-recognition | AI-powered food recognition from photos (10 Indian foods) |
 
 ### 👶 Child Health Features
 
@@ -116,14 +115,6 @@ GET  /api/education-sessions?village=<name> - Get nutrition education sessions
 GET  /api/economy-recommendations?village=<name> - Get cost-effective recommendations
 POST /api/add-price-update                  - Add ingredient price update
 POST /api/sync-mandi-prices                 - Sync real-time mandi prices from data.gov.in
-```
-
-### Food Recognition APIs (AI/ML)
-
-```
-POST /api/analyze-food-image      - Analyze single food image
-POST /api/batch-analyze-food      - Analyze multiple images (max 5)
-GET  /api/food-database           - Get list of supported foods (10 Indian foods)
 ```
 
 ### Chatbot APIs (Gemini AI)

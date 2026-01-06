@@ -1,0 +1,52 @@
+[
+  {
+    "id": "AWW001",
+    "name": "Lakshmi Devi",
+    "type": "anganwadi_worker",
+    "phone": "+91-9876543210",
+    "email": "lakshmi.aww@anganwadi.gov.in",
+    "village": "Hosahalli",
+    "priority": 1,
+    "active": true
+  },
+  {
+    "id": "ASHA001",
+    "name": "Kavitha M",
+    "type": "asha_worker",
+    "phone": "+91-9876543211",
+    "email": "kavitha.asha@health.gov.in",
+    "village": "Hosahalli",
+    "priority": 1,
+    "active": true
+  },
+  {
+    "id": "PHC001",
+    "name": "Dr. Ramesh Kumar",
+    "type": "phc_staff",
+    "phone": "+91-9876543212",
+    "email": "dr.ramesh@phc-mandya.gov.in",
+    "village": "Mandya PHC",
+    "priority": 2,
+    "active": true
+  },
+  {
+    "id": "NGO001",
+    "name": "Suresh Gowda",
+    "type": "ngo_volunteer",
+    "phone": "+91-9876543213",
+    "email": "suresh@childcare-ngo.org",
+    "village": "Mandya District",
+    "priority": 2,
+    "active": true
+  },
+  {
+    "id": "DHO001",
+    "name": "Dr. Prasad",
+    "type": "district_officer",
+    "phone": "+91-9876543214",
+    "email": "dho@mandya.health.gov.in",
+    "village": "Mandya District HQ",
+    "priority": 3,
+    "active": true
+  }
+]

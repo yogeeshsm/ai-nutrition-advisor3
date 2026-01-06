@@ -1,0 +1,721 @@
+{% extends "base.html" %}
+
+{% block title %}🆘 Emergency Alert Network{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-lg-12 mx-auto">
+            <!-- Header -->
+            <div class="card border-0 shadow-lg mb-4" style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);">
+                <div class="card-body text-white text-center py-4">
+                    <i class="fas fa-ambulance fa-3x mb-3"></i>
+                    <h2 class="display-5 fw-bold mb-2">🆘 Emergency Malnutrition Alert Network</h2>
+                    <p class="lead mb-0">Auto-alerts for Anganwadi • PHC • NGO • District Officers</p>
+                </div>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="row mb-4" id="statsCards">
+                <div class="col-md-3 col-6 mb-3">
+                    <div class="card border-0 shadow-sm h-100 bg-danger text-white">
+                        <div class="card-body text-center">
+                            <i class="fas fa-exclamation-circle fa-2x mb-2"></i>
+                            <h3 class="mb-0" id="pendingCount">0</h3>
+                            <small>Pending Alerts</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6 mb-3">
+                    <div class="card border-0 shadow-sm h-100 bg-warning text-dark">
+                        <div class="card-body text-center">
+                            <i class="fas fa-spinner fa-2x mb-2"></i>
+                            <h3 class="mb-0" id="inProgressCount">0</h3>
+                            <small>In Progress</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6 mb-3">
+                    <div class="card border-0 shadow-sm h-100 bg-success text-white">
+                        <div class="card-body text-center">
+                            <i class="fas fa-check-circle fa-2x mb-2"></i>
+                            <h3 class="mb-0" id="resolvedCount">0</h3>
+                            <small>Resolved</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6 mb-3">
+                    <div class="card border-0 shadow-sm h-100 bg-dark text-white">
+                        <div class="card-body text-center">
+                            <i class="fas fa-users fa-2x mb-2"></i>
+                            <h3 class="mb-0" id="respondersCount">0</h3>
+                            <small>Active Responders</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Left Column: Create Alert / Check Child -->
+                <div class="col-lg-4 mb-4">
+                    <!-- Quick Check Card -->
+                    <div class="card border-0 shadow-sm mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-stethoscope"></i> Quick Malnutrition Check</h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="quickCheckForm">
+                                <div class="mb-3">
+                                    <label class="form-label">Child Name</label>
+                                    <input type="text" class="form-control" id="childName" required>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-6">
+                                        <label class="form-label">Age (months)</label>
+                                        <input type="number" class="form-control" id="childAge" min="0" max="72" required>
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label">Village</label>
+                                        <input type="text" class="form-control" id="village" value="Hosahalli">
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-6">
+                                        <label class="form-label">Weight (kg)</label>
+                                        <input type="number" step="0.1" class="form-control" id="weightKg" required>
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label">Height (cm)</label>
+                                        <input type="number" step="0.1" class="form-control" id="heightCm" required>
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-6">
+                                        <label class="form-label">MUAC (cm)</label>
+                                        <input type="number" step="0.1" class="form-control" id="muacCm" placeholder="Mid-upper arm">
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label">Edema?</label>
+                                        <select class="form-select" id="hasEdema">
+                                            <option value="false">No</option>
+                                            <option value="true">Yes (Swelling)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-danger w-100">
+                                    <i class="fas fa-search"></i> Check & Alert if Needed
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Responders Card -->
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="fas fa-users"></i> Alert Responders</h5>
+                            <button class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#addResponderModal">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="list-group list-group-flush" id="respondersList">
+                                <!-- Loaded dynamically -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Alerts List -->
+                <div class="col-lg-8">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="fas fa-bell"></i> Active Alerts</h5>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-danger filter-btn active" data-filter="all">All</button>
+                                <button class="btn btn-outline-danger filter-btn" data-filter="pending">Pending</button>
+                                <button class="btn btn-outline-warning filter-btn" data-filter="in_progress">In Progress</button>
+                                <button class="btn btn-outline-success filter-btn" data-filter="resolved">Resolved</button>
+                            </div>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Level</th>
+                                            <th>Child</th>
+                                            <th>Village</th>
+                                            <th>Status</th>
+                                            <th>Created</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="alertsTableBody">
+                                        <tr>
+                                            <td colspan="6" class="text-center py-4 text-muted">
+                                                <i class="fas fa-spinner fa-spin"></i> Loading alerts...
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Alert Details Modal -->
+<div class="modal fade" id="alertDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header" id="alertDetailHeader">
+                <h5 class="modal-title"><i class="fas fa-bell"></i> Alert Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="alertDetailBody">
+                <!-- Loaded dynamically -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-success" id="btnAcknowledge">
+                    <i class="fas fa-check"></i> Acknowledge
+                </button>
+                <button type="button" class="btn btn-primary" id="btnIntervention">
+                    <i class="fas fa-hand-holding-medical"></i> Record Intervention
+                </button>
+                <button type="button" class="btn btn-warning" id="btnEscalate">
+                    <i class="fas fa-arrow-up"></i> Escalate
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Responder Modal -->
+<div class="modal fade" id="addResponderModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title"><i class="fas fa-user-plus"></i> Add Responder</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addResponderForm">
+                    <div class="mb-3">
+                        <label class="form-label">Name</label>
+                        <input type="text" class="form-control" id="responderName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Type</label>
+                        <select class="form-select" id="responderType" required>
+                            <option value="anganwadi_worker">Anganwadi Worker</option>
+                            <option value="asha_worker">ASHA Worker</option>
+                            <option value="phc_staff">PHC Staff</option>
+                            <option value="ngo_volunteer">NGO Volunteer</option>
+                            <option value="district_officer">District Officer</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Phone</label>
+                        <input type="tel" class="form-control" id="responderPhone" placeholder="+91-" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" id="responderEmail">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Village/Area</label>
+                        <input type="text" class="form-control" id="responderVillage">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="btnSaveResponder">
+                    <i class="fas fa-save"></i> Save Responder
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Intervention Modal -->
+<div class="modal fade" id="interventionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fas fa-hand-holding-medical"></i> Record Intervention</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="interventionForm">
+                    <input type="hidden" id="interventionAlertId">
+                    <div class="mb-3">
+                        <label class="form-label">Intervention Type</label>
+                        <select class="form-select" id="interventionType" required>
+                            <option value="home_visit">Home Visit</option>
+                            <option value="nutrition_counseling">Nutrition Counseling</option>
+                            <option value="food_supplement">Food Supplement Given</option>
+                            <option value="referred_phc">Referred to PHC</option>
+                            <option value="referred_hospital">Referred to Hospital</option>
+                            <option value="follow_up">Follow-up Visit</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea class="form-control" id="interventionNotes" rows="3" required></textarea>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="markResolved">
+                        <label class="form-check-label" for="markResolved">
+                            Mark as Resolved
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="btnSaveIntervention">
+                    <i class="fas fa-save"></i> Save Intervention
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.alert-level-emergency { background: linear-gradient(135deg, #dc3545, #c82333); color: white; }
+.alert-level-critical { background: linear-gradient(135deg, #fd7e14, #e65100); color: white; }
+.alert-level-warning { background: linear-gradient(135deg, #ffc107, #ff9800); color: #333; }
+
+.badge-emergency { background: #dc3545; }
+.badge-critical { background: #fd7e14; }
+.badge-warning { background: #ffc107; color: #333; }
+
+.responder-type-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+}
+
+.pulse-animation {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+</style>
+
+<script>
+let currentAlertId = null;
+let currentFilter = 'all';
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadStats();
+    loadAlerts();
+    loadResponders();
+    
+    // Refresh every 30 seconds
+    setInterval(() => {
+        loadStats();
+        loadAlerts();
+    }, 30000);
+});
+
+// Filter buttons
+document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        currentFilter = this.dataset.filter;
+        loadAlerts();
+    });
+});
+
+// Quick check form
+document.getElementById('quickCheckForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const data = {
+        child_name: document.getElementById('childName').value,
+        age_months: parseInt(document.getElementById('childAge').value),
+        village: document.getElementById('village').value,
+        weight_kg: parseFloat(document.getElementById('weightKg').value),
+        height_cm: parseFloat(document.getElementById('heightCm').value),
+        muac_cm: document.getElementById('muacCm').value ? parseFloat(document.getElementById('muacCm').value) : null,
+        has_edema: document.getElementById('hasEdema').value === 'true'
+    };
+    
+    try {
+        const response = await fetch('/api/emergency-alert/check-and-alert', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (result.alert_created) {
+            alert(`🆘 ALERT CREATED!\n\nLevel: ${result.alert_level.toUpperCase()}\nNotified: ${result.responders.join(', ')}`);
+            loadStats();
+            loadAlerts();
+            this.reset();
+        } else {
+            alert(`✅ Child is ${result.status}\n\nNo alert needed.`);
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+});
+
+async function loadStats() {
+    try {
+        const response = await fetch('/api/emergency-alert/stats');
+        const stats = await response.json();
+        
+        document.getElementById('pendingCount').textContent = stats.pending;
+        document.getElementById('inProgressCount').textContent = stats.in_progress;
+        document.getElementById('resolvedCount').textContent = stats.resolved;
+        document.getElementById('respondersCount').textContent = stats.responders_count;
+        
+        // Pulse animation for pending alerts
+        if (stats.pending > 0) {
+            document.getElementById('pendingCount').parentElement.classList.add('pulse-animation');
+        }
+    } catch (error) {
+        console.error('Error loading stats:', error);
+    }
+}
+
+async function loadAlerts() {
+    try {
+        let url = '/api/emergency-alert/alerts';
+        if (currentFilter !== 'all') {
+            url += `?status=${currentFilter}`;
+        }
+        
+        const response = await fetch(url);
+        const alerts = await response.json();
+        
+        const tbody = document.getElementById('alertsTableBody');
+        
+        if (alerts.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="text-center py-4 text-muted">
+                        <i class="fas fa-check-circle fa-2x mb-2"></i><br>
+                        No alerts found
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+        
+        tbody.innerHTML = alerts.map(alert => {
+            const levelBadge = getLevelBadge(alert.alert_level);
+            const statusBadge = getStatusBadge(alert.status);
+            const timeAgo = getTimeAgo(alert.created_at);
+            
+            return `
+                <tr class="${alert.status === 'pending' ? 'table-danger' : ''}">
+                    <td>${levelBadge}</td>
+                    <td>
+                        <strong>${alert.child_name}</strong><br>
+                        <small class="text-muted">${alert.child_age_months} months</small>
+                    </td>
+                    <td>${alert.village}</td>
+                    <td>${statusBadge}</td>
+                    <td><small>${timeAgo}</small></td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" onclick="viewAlert('${alert.id}')">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    } catch (error) {
+        console.error('Error loading alerts:', error);
+    }
+}
+
+async function loadResponders() {
+    try {
+        const response = await fetch('/api/emergency-alert/responders');
+        const responders = await response.json();
+        
+        const list = document.getElementById('respondersList');
+        
+        list.innerHTML = responders.map(r => {
+            const icon = getResponderIcon(r.type);
+            return `
+                <div class="list-group-item d-flex align-items-center">
+                    <div class="responder-type-icon bg-${getResponderColor(r.type)} text-white me-3">
+                        <i class="${icon}"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <strong>${r.name}</strong><br>
+                        <small class="text-muted">${formatResponderType(r.type)}</small>
+                    </div>
+                    <span class="badge bg-${r.active ? 'success' : 'secondary'}">
+                        ${r.active ? 'Active' : 'Inactive'}
+                    </span>
+                </div>
+            `;
+        }).join('');
+    } catch (error) {
+        console.error('Error loading responders:', error);
+    }
+}
+
+async function viewAlert(alertId) {
+    try {
+        const response = await fetch(`/api/emergency-alert/alert/${alertId}`);
+        const alert = await response.json();
+        
+        currentAlertId = alertId;
+        
+        const header = document.getElementById('alertDetailHeader');
+        header.className = `modal-header alert-level-${alert.alert_level}`;
+        
+        document.getElementById('alertDetailBody').innerHTML = `
+            <div class="row">
+                <div class="col-md-6">
+                    <h6><i class="fas fa-child"></i> Child Information</h6>
+                    <table class="table table-sm">
+                        <tr><td>Name:</td><td><strong>${alert.child_name}</strong></td></tr>
+                        <tr><td>Age:</td><td>${alert.child_age_months} months</td></tr>
+                        <tr><td>Village:</td><td>${alert.village}</td></tr>
+                    </table>
+                    
+                    <h6><i class="fas fa-weight"></i> Measurements</h6>
+                    <table class="table table-sm">
+                        <tr><td>Weight:</td><td>${alert.child_data.weight_kg} kg</td></tr>
+                        <tr><td>Height:</td><td>${alert.child_data.height_cm} cm</td></tr>
+                        <tr><td>MUAC:</td><td>${alert.child_data.muac_cm || 'N/A'} cm</td></tr>
+                        <tr><td>Edema:</td><td>${alert.child_data.has_edema ? '⚠️ Yes' : 'No'}</td></tr>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <h6><i class="fas fa-chart-line"></i> Z-Scores</h6>
+                    <table class="table table-sm">
+                        <tr><td>Weight-for-Age:</td><td class="${getZscoreClass(alert.child_data.wfa_zscore)}">${alert.child_data.wfa_zscore?.toFixed(2) || 'N/A'}</td></tr>
+                        <tr><td>Height-for-Age:</td><td class="${getZscoreClass(alert.child_data.hfa_zscore)}">${alert.child_data.hfa_zscore?.toFixed(2) || 'N/A'}</td></tr>
+                        <tr><td>Weight-for-Height:</td><td class="${getZscoreClass(alert.child_data.wfh_zscore)}">${alert.child_data.wfh_zscore?.toFixed(2) || 'N/A'}</td></tr>
+                    </table>
+                    
+                    <h6><i class="fas fa-users"></i> Notified (${alert.notified_responders.length})</h6>
+                    <ul class="list-unstyled">
+                        ${alert.notified_responders.map(r => `
+                            <li><i class="fas fa-check text-success"></i> ${r.responder_name} (${formatResponderType(r.responder_type)})</li>
+                        `).join('')}
+                    </ul>
+                </div>
+            </div>
+            
+            ${alert.interventions.length > 0 ? `
+                <hr>
+                <h6><i class="fas fa-hand-holding-medical"></i> Interventions</h6>
+                <ul class="list-group">
+                    ${alert.interventions.map(i => `
+                        <li class="list-group-item">
+                            <strong>${i.intervention_type}</strong> - ${i.notes}
+                            <br><small class="text-muted">${new Date(i.timestamp).toLocaleString()}</small>
+                        </li>
+                    `).join('')}
+                </ul>
+            ` : ''}
+        `;
+        
+        // Show/hide buttons based on status
+        document.getElementById('btnAcknowledge').style.display = 
+            alert.status === 'pending' ? 'inline-block' : 'none';
+        document.getElementById('btnIntervention').style.display = 
+            ['pending', 'acknowledged', 'in_progress'].includes(alert.status) ? 'inline-block' : 'none';
+        document.getElementById('btnEscalate').style.display = 
+            ['pending', 'acknowledged'].includes(alert.status) ? 'inline-block' : 'none';
+        
+        new bootstrap.Modal(document.getElementById('alertDetailModal')).show();
+    } catch (error) {
+        alert('Error loading alert: ' + error.message);
+    }
+}
+
+// Acknowledge alert
+document.getElementById('btnAcknowledge').addEventListener('click', async function() {
+    try {
+        await fetch(`/api/emergency-alert/acknowledge/${currentAlertId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ notes: 'Alert acknowledged' })
+        });
+        bootstrap.Modal.getInstance(document.getElementById('alertDetailModal')).hide();
+        loadAlerts();
+        loadStats();
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+});
+
+// Show intervention modal
+document.getElementById('btnIntervention').addEventListener('click', function() {
+    document.getElementById('interventionAlertId').value = currentAlertId;
+    bootstrap.Modal.getInstance(document.getElementById('alertDetailModal')).hide();
+    new bootstrap.Modal(document.getElementById('interventionModal')).show();
+});
+
+// Save intervention
+document.getElementById('btnSaveIntervention').addEventListener('click', async function() {
+    const alertId = document.getElementById('interventionAlertId').value;
+    const data = {
+        intervention_type: document.getElementById('interventionType').value,
+        notes: document.getElementById('interventionNotes').value,
+        mark_resolved: document.getElementById('markResolved').checked
+    };
+    
+    try {
+        await fetch(`/api/emergency-alert/intervention/${alertId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        bootstrap.Modal.getInstance(document.getElementById('interventionModal')).hide();
+        loadAlerts();
+        loadStats();
+        document.getElementById('interventionForm').reset();
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+});
+
+// Escalate alert
+document.getElementById('btnEscalate').addEventListener('click', async function() {
+    const reason = prompt('Enter reason for escalation:');
+    if (!reason) return;
+    
+    try {
+        await fetch(`/api/emergency-alert/escalate/${currentAlertId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reason })
+        });
+        bootstrap.Modal.getInstance(document.getElementById('alertDetailModal')).hide();
+        loadAlerts();
+        loadStats();
+        alert('Alert escalated to District Officer');
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+});
+
+// Save responder
+document.getElementById('btnSaveResponder').addEventListener('click', async function() {
+    const data = {
+        name: document.getElementById('responderName').value,
+        type: document.getElementById('responderType').value,
+        phone: document.getElementById('responderPhone').value,
+        email: document.getElementById('responderEmail').value,
+        village: document.getElementById('responderVillage').value,
+        priority: 1
+    };
+    
+    try {
+        await fetch('/api/emergency-alert/responders', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        bootstrap.Modal.getInstance(document.getElementById('addResponderModal')).hide();
+        loadResponders();
+        loadStats();
+        document.getElementById('addResponderForm').reset();
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+});
+
+// Helper functions
+function getLevelBadge(level) {
+    const badges = {
+        'emergency': '<span class="badge badge-emergency">🆘 EMERGENCY</span>',
+        'critical': '<span class="badge badge-critical">🔴 CRITICAL</span>',
+        'warning': '<span class="badge badge-warning">⚠️ WARNING</span>'
+    };
+    return badges[level] || level;
+}
+
+function getStatusBadge(status) {
+    const badges = {
+        'pending': '<span class="badge bg-danger">Pending</span>',
+        'acknowledged': '<span class="badge bg-info">Acknowledged</span>',
+        'in_progress': '<span class="badge bg-warning">In Progress</span>',
+        'resolved': '<span class="badge bg-success">Resolved</span>',
+        'escalated': '<span class="badge bg-dark">Escalated</span>'
+    };
+    return badges[status] || status;
+}
+
+function getResponderIcon(type) {
+    const icons = {
+        'anganwadi_worker': 'fas fa-female',
+        'asha_worker': 'fas fa-heart',
+        'phc_staff': 'fas fa-hospital',
+        'ngo_volunteer': 'fas fa-hands-helping',
+        'district_officer': 'fas fa-user-tie'
+    };
+    return icons[type] || 'fas fa-user';
+}
+
+function getResponderColor(type) {
+    const colors = {
+        'anganwadi_worker': 'primary',
+        'asha_worker': 'danger',
+        'phc_staff': 'success',
+        'ngo_volunteer': 'info',
+        'district_officer': 'dark'
+    };
+    return colors[type] || 'secondary';
+}
+
+function formatResponderType(type) {
+    const names = {
+        'anganwadi_worker': 'Anganwadi Worker',
+        'asha_worker': 'ASHA Worker',
+        'phc_staff': 'PHC Staff',
+        'ngo_volunteer': 'NGO Volunteer',
+        'district_officer': 'District Officer'
+    };
+    return names[type] || type;
+}
+
+function getZscoreClass(zscore) {
+    if (zscore === null || zscore === undefined) return '';
+    if (zscore < -3) return 'text-danger fw-bold';
+    if (zscore < -2) return 'text-warning fw-bold';
+    return 'text-success';
+}
+
+function getTimeAgo(dateString) {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    return `${diffDays}d ago`;
+}
+</script>
+{% endblock %}

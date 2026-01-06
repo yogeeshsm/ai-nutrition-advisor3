@@ -12,9 +12,9 @@ from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.decomposition import TruncatedSVD
-import sqlite3
 from datetime import datetime, timedelta
 import json
+import database as db
 
 class MealRecommendationSystem:
     """
@@ -32,8 +32,8 @@ class MealRecommendationSystem:
         self.ingredient_features = None
         
     def get_connection(self):
-        """Get database connection"""
-        return sqlite3.connect(self.db_path)
+        """Get database connection - using database module for SQLite/MySQL compatibility"""
+        return db.get_connection()
     
     # ==================== DATA PREPARATION ====================
     
@@ -251,7 +251,7 @@ class MealRecommendationSystem:
         
         # Get successful meal plans from similar children
         similar_child_ids = [str(child[0]) for child in similar_children]
-        placeholders = ','.join(['?' for _ in similar_child_ids])
+        placeholders = ','.join(['%s' for _ in similar_child_ids])
         
         query = f"""
             SELECT mp.ingredients, mp.nutrition_score, mp.total_cost,
@@ -264,7 +264,7 @@ class MealRecommendationSystem:
             LIMIT 50
         """
         
-        recommendations = pd.read_sql_query(query, conn, params=similar_child_ids)
+        recommendations = pd.read_sql_query(query, conn, params=tuple(similar_child_ids))
         conn.close()
         
         if recommendations.empty:
@@ -464,7 +464,7 @@ class MealRecommendationSystem:
         
         # Get ingredient details
         ingredient_names = [rec[0] for rec in recommendations]
-        placeholders = ','.join(['?' for _ in ingredient_names])
+        placeholders = ','.join(['%s' for _ in ingredient_names])
         
         query = f"""
             SELECT name, category, protein_per_100g, carbs_per_100g,
@@ -473,7 +473,7 @@ class MealRecommendationSystem:
             WHERE name IN ({placeholders})
         """
         
-        ingredients_df = pd.read_sql_query(query, conn, params=ingredient_names)
+        ingredients_df = pd.read_sql_query(query, conn, params=tuple(ingredient_names))
         conn.close()
         
         # Create weekly meal plan with variety
@@ -541,7 +541,7 @@ class MealRecommendationSystem:
         Predict whether a child will accept a particular ingredient
         Based on similar children's consumption patterns
         """
-        similar_children = self.find_similar_children(child_id, n_neighbors=10)
+        similar_children = self.find_similar_children(child_id, top_n=10)
         
         if not similar_children:
             return 0.5  # Neutral prediction
@@ -556,7 +556,7 @@ class MealRecommendationSystem:
             query = """
                 SELECT ingredients, nutrition_score
                 FROM meal_plans
-                WHERE child_id = ?
+                WHERE child_id = %s
                 AND nutrition_score >= 60
             """
             
@@ -651,16 +651,16 @@ class MealRecommendationSystem:
         conn = self.get_connection()
         
         # Get all ingredients ranked by nutrition score
-        query = """
+        query = f"""
             SELECT name, category, protein_per_100g, iron_per_100g, 
                    calcium_per_100g, calories_per_100g, cost_per_kg
             FROM ingredients
             WHERE protein_per_100g > 0 AND iron_per_100g > 0
             ORDER BY (protein_per_100g + iron_per_100g + calcium_per_100g) DESC
-            LIMIT ?
+            LIMIT {top_n * 2}
         """
         
-        ingredients = pd.read_sql_query(query, conn, params=(top_n * 2,))
+        ingredients = pd.read_sql_query(query, conn)
         conn.close()
         
         recommendations = []
@@ -717,7 +717,7 @@ class MealRecommendationSystem:
                        g.weight_kg, g.height_cm, g.bmi
                 FROM children c
                 LEFT JOIN growth_tracking g ON c.id = g.child_id
-                WHERE c.id != ?
+                WHERE c.id != %s
                 ORDER BY g.measurement_date DESC
             """
             
@@ -729,7 +729,7 @@ class MealRecommendationSystem:
             
             # Calculate age similarity
             target_query = """
-                SELECT date_of_birth FROM children WHERE id = ?
+                SELECT date_of_birth FROM children WHERE id = %s
             """
             target_dob = pd.read_sql_query(target_query, self.get_connection(), params=(child_id,))
             

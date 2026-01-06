@@ -1,0 +1,370 @@
+{% extends "base.html" %}
+
+{% block title %}Health Center Finder - AI Nutrition Advisor{% endblock %}
+
+{% block content %}
+<div class="text-center mb-4">
+    <h1 class="display-5 fw-bold" style="color: white;">
+        <i class="fas fa-hospital"></i> Nearest Health Center Finder
+    </h1>
+    <p class="lead" style="color: white; opacity: 0.9;">
+        🏥 Find Anganwadi, PHC & Health Centers near you
+    </p>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <!-- Location Card -->
+        <div class="card mb-4 shadow">
+            <div class="card-body text-center py-4">
+                <div id="locationStatus">
+                    <button id="findBtn" class="btn btn-primary btn-lg px-5 py-3" onclick="findNearbycenters()">
+                        <i class="fas fa-location-crosshairs me-2"></i> Find Nearby Health Centers
+                    </button>
+                    <p class="text-muted mt-3 mb-0">
+                        <i class="fas fa-info-circle"></i> Click to use your GPS location
+                    </p>
+                </div>
+                <div id="loadingStatus" class="d-none">
+                    <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-3 text-primary fw-bold">📍 Getting your location...</p>
+                </div>
+                <div id="locationError" class="d-none">
+                    <div class="alert alert-warning mb-0">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span id="errorMessage">Unable to get location</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Emergency Numbers Card (Always Visible) -->
+        <div class="card mb-4 shadow border-danger">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0"><i class="fas fa-phone-alt"></i> Emergency Helpline Numbers</h5>
+            </div>
+            <div class="card-body">
+                <div class="row" id="emergencyNumbers">
+                    <div class="col-6 col-md-4 col-lg-2 mb-3 text-center">
+                        <a href="tel:108" class="text-decoration-none">
+                            <div class="bg-danger text-white rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 60px; height: 60px; font-size: 24px;">
+                                🚑
+                            </div>
+                            <p class="mt-2 mb-0 fw-bold text-danger">108</p>
+                            <small class="text-muted">Medical Emergency</small>
+                        </a>
+                    </div>
+                    <div class="col-6 col-md-4 col-lg-2 mb-3 text-center">
+                        <a href="tel:102" class="text-decoration-none">
+                            <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 60px; height: 60px; font-size: 24px;">
+                                👶
+                            </div>
+                            <p class="mt-2 mb-0 fw-bold text-primary">102</p>
+                            <small class="text-muted">Janani Ambulance</small>
+                        </a>
+                    </div>
+                    <div class="col-6 col-md-4 col-lg-2 mb-3 text-center">
+                        <a href="tel:1098" class="text-decoration-none">
+                            <div class="bg-success text-white rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 60px; height: 60px; font-size: 24px;">
+                                📞
+                            </div>
+                            <p class="mt-2 mb-0 fw-bold text-success">1098</p>
+                            <small class="text-muted">Child Helpline</small>
+                        </a>
+                    </div>
+                    <div class="col-6 col-md-4 col-lg-2 mb-3 text-center">
+                        <a href="tel:181" class="text-decoration-none">
+                            <div class="bg-warning text-dark rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 60px; height: 60px; font-size: 24px;">
+                                👩
+                            </div>
+                            <p class="mt-2 mb-0 fw-bold text-warning">181</p>
+                            <small class="text-muted">Women Helpline</small>
+                        </a>
+                    </div>
+                    <div class="col-6 col-md-4 col-lg-2 mb-3 text-center">
+                        <a href="tel:100" class="text-decoration-none">
+                            <div class="bg-dark text-white rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 60px; height: 60px; font-size: 24px;">
+                                🚓
+                            </div>
+                            <p class="mt-2 mb-0 fw-bold text-dark">100</p>
+                            <small class="text-muted">Police</small>
+                        </a>
+                    </div>
+                    <div class="col-6 col-md-4 col-lg-2 mb-3 text-center">
+                        <a href="tel:104" class="text-decoration-none">
+                            <div class="bg-info text-white rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 60px; height: 60px; font-size: 24px;">
+                                💊
+                            </div>
+                            <p class="mt-2 mb-0 fw-bold text-info">104</p>
+                            <small class="text-muted">Health Helpline</small>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Health Centers Results -->
+        <div id="resultsSection" class="d-none">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="text-white mb-0"><i class="fas fa-map-marker-alt"></i> Nearby Health Centers</h4>
+                <span class="badge bg-light text-dark" id="centerCount">0 centers found</span>
+            </div>
+
+            <!-- Filter Buttons -->
+            <div class="mb-3">
+                <div class="btn-group flex-wrap" role="group">
+                    <button class="btn btn-light active" onclick="filterCenters('all')">All</button>
+                    <button class="btn btn-outline-light" onclick="filterCenters('Anganwadi')">👶 Anganwadi</button>
+                    <button class="btn btn-outline-light" onclick="filterCenters('PHC')">🏥 PHC</button>
+                    <button class="btn btn-outline-light" onclick="filterCenters('CHC')">🏨 CHC</button>
+                    <button class="btn btn-outline-light" onclick="filterCenters('ASHA')">👩‍⚕️ ASHA</button>
+                </div>
+            </div>
+
+            <!-- Centers List -->
+            <div id="centersList">
+                <!-- Centers will be populated here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.center-card {
+    transition: all 0.3s ease;
+    border-left: 5px solid #4CAF50;
+}
+.center-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2) !important;
+}
+.center-card.anganwadi { border-left-color: #FF6B6B; }
+.center-card.phc { border-left-color: #4ECDC4; }
+.center-card.chc { border-left-color: #667eea; }
+.center-card.asha { border-left-color: #FFE66D; }
+.center-card.sub-center { border-left-color: #95a5a6; }
+
+.service-badge {
+    font-size: 0.75rem;
+    padding: 0.3rem 0.6rem;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    display: inline-block;
+    margin: 2px;
+}
+
+.distance-badge {
+    font-size: 1.1rem;
+    padding: 0.5rem 1rem;
+    border-radius: 25px;
+    background: linear-gradient(135deg, #4CAF50, #8BC34A);
+    color: white;
+}
+
+.call-btn {
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+    border: none;
+    padding: 0.5rem 1.5rem;
+    border-radius: 25px;
+    transition: all 0.3s ease;
+}
+.call-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+}
+
+.direction-btn {
+    background: linear-gradient(135deg, #2196F3, #1976D2);
+    border: none;
+    padding: 0.5rem 1.5rem;
+    border-radius: 25px;
+}
+.direction-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 5px 15px rgba(33, 150, 243, 0.4);
+}
+</style>
+
+<script>
+let allCenters = [];
+let userLocation = null;
+
+function findNearbycenters() {
+    const findBtn = document.getElementById('findBtn');
+    const locationStatus = document.getElementById('locationStatus');
+    const loadingStatus = document.getElementById('loadingStatus');
+    const locationError = document.getElementById('locationError');
+    
+    // Show loading
+    locationStatus.classList.add('d-none');
+    loadingStatus.classList.remove('d-none');
+    locationError.classList.add('d-none');
+    
+    if (!navigator.geolocation) {
+        showError('Geolocation is not supported by your browser');
+        return;
+    }
+    
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            userLocation = {
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude
+            };
+            fetchHealthCenters(userLocation);
+        },
+        (error) => {
+            let errorMsg = 'Unable to get your location. ';
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    errorMsg += 'Please allow location access.';
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    errorMsg += 'Location information unavailable.';
+                    break;
+                case error.TIMEOUT:
+                    errorMsg += 'Location request timed out.';
+                    break;
+            }
+            showError(errorMsg);
+        },
+        {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+        }
+    );
+}
+
+function showError(message) {
+    document.getElementById('loadingStatus').classList.add('d-none');
+    document.getElementById('locationStatus').classList.remove('d-none');
+    document.getElementById('locationError').classList.remove('d-none');
+    document.getElementById('errorMessage').textContent = message;
+}
+
+async function fetchHealthCenters(location) {
+    try {
+        const response = await fetch('/api/nearby-health-centers', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(location)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            allCenters = data.centers;
+            displayCenters(allCenters);
+            
+            // Update UI
+            document.getElementById('loadingStatus').classList.add('d-none');
+            document.getElementById('locationStatus').innerHTML = `
+                <div class="alert alert-success mb-0">
+                    <i class="fas fa-check-circle"></i> Location found! 
+                    <button class="btn btn-sm btn-outline-success ms-2" onclick="findNearbycenters()">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                </div>
+            `;
+            document.getElementById('locationStatus').classList.remove('d-none');
+            document.getElementById('resultsSection').classList.remove('d-none');
+        } else {
+            showError(data.error || 'Failed to find health centers');
+        }
+    } catch (error) {
+        showError('Network error. Please try again.');
+    }
+}
+
+function displayCenters(centers) {
+    const container = document.getElementById('centersList');
+    document.getElementById('centerCount').textContent = `${centers.length} centers found`;
+    
+    if (centers.length === 0) {
+        container.innerHTML = `
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> No health centers found matching your filter.
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '';
+    centers.forEach(center => {
+        const typeClass = center.type.toLowerCase().replace('-', '');
+        const servicesHtml = center.services.map(s => `<span class="service-badge">${s}</span>`).join('');
+        
+        html += `
+            <div class="card mb-3 shadow center-card ${typeClass}" data-type="${center.type}">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <div class="d-flex align-items-center mb-2">
+                                <span style="font-size: 2rem;" class="me-3">${center.icon}</span>
+                                <div>
+                                    <h5 class="mb-0">${center.name}</h5>
+                                    <span class="badge bg-secondary">${center.type}</span>
+                                </div>
+                            </div>
+                            <p class="mb-2 text-muted">
+                                <i class="fas fa-map-marker-alt text-danger"></i> ${center.address}
+                            </p>
+                            <p class="mb-2">
+                                <i class="fas fa-clock text-info"></i> <strong>Timing:</strong> ${center.timing}
+                            </p>
+                            <div class="mb-2">
+                                <strong><i class="fas fa-stethoscope text-success"></i> Services:</strong><br>
+                                ${servicesHtml}
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-center text-md-end mt-3 mt-md-0">
+                            <div class="mb-3">
+                                <span class="distance-badge">
+                                    <i class="fas fa-route"></i> ${center.distance} km
+                                </span>
+                            </div>
+                            <div class="d-grid gap-2">
+                                <a href="tel:${center.phone}" class="btn btn-success call-btn">
+                                    <i class="fas fa-phone"></i> Call Now
+                                </a>
+                                <a href="https://www.google.com/maps/dir/?api=1&destination=${center.address}" 
+                                   target="_blank" class="btn btn-primary direction-btn">
+                                    <i class="fas fa-directions"></i> Get Directions
+                                </a>
+                            </div>
+                            <small class="text-muted mt-2 d-block">
+                                Emergency: <a href="tel:${center.emergency}" class="text-danger fw-bold">${center.emergency}</a>
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
+function filterCenters(type) {
+    // Update button states
+    document.querySelectorAll('.btn-group .btn').forEach(btn => {
+        btn.classList.remove('active', 'btn-light');
+        btn.classList.add('btn-outline-light');
+    });
+    event.target.classList.remove('btn-outline-light');
+    event.target.classList.add('active', 'btn-light');
+    
+    // Filter centers
+    if (type === 'all') {
+        displayCenters(allCenters);
+    } else {
+        const filtered = allCenters.filter(c => c.type === type);
+        displayCenters(filtered);
+    }
+}
+</script>
+{% endblock %}
