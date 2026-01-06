@@ -22,6 +22,9 @@ This application is designed to help Anganwadi workers create nutritionally bala
 - **💰 Budget Management**: Optimize meals to stay within weekly budget
 - **👶 Age-Specific Plans**: Customized plans for different age groups (1-3, 3-6, 6-10 years)
 - **🏘️ Village Nutrition Economy Analyzer**: Track local food prices, spending patterns, and cost-effective nutrition recommendations for communities
+- **🚨 Emergency Alert System**: Real-time alerts for severe malnutrition cases with responder notifications
+- **🧠 ML-Based Recommendations**: Machine learning powered personalized nutrition suggestions
+- **💬 AI Nutrition Chatbot**: Conversational AI assistant for nutrition queries (supports Gemini & Groq)
 
 ### User Interface
 
@@ -457,6 +460,9 @@ Planned features:
 - [ ] Multi-user support with authentication
 - [ ] Integration with government databases
 - [x] **Village Nutrition Economy Analyzer** - Track local food prices, spending patterns, and cost-effective nutrition
+- [x] **Emergency Alert System** - Real-time severe malnutrition alerts
+- [x] **ML Recommendations** - Machine learning based personalized suggestions
+- [x] **AI Chatbot** - Conversational nutrition assistant
 
 ## 🏘️ Village Nutrition Economy Analyzer
 
@@ -486,6 +492,51 @@ NEW feature designed for ASHA workers and community health workers:
 
 Access it at: **http://localhost:5000/village-economy**
 
+## 🚨 Emergency Alert System
+
+Real-time alert system for malnutrition emergencies:
+
+### Features
+- **Automated Detection**: Identifies severe and moderate malnutrition cases from z-scores
+- **Responder Notifications**: Alerts ASHA workers, ANM, doctors via configured channels
+- **Priority Levels**: Critical (red), High (orange), Medium (yellow) alerts
+- **Dashboard View**: Track all active alerts and their status
+- **Quick Response**: One-click acknowledgment and case management
+
+Access it at: **http://localhost:5000/emergency-alerts**
+
+## 🧠 ML-Based Recommendations
+
+Machine learning powered nutrition suggestions:
+
+### Features
+- **Personalized Recommendations**: Based on child's age, weight, height, and nutritional status
+- **Smart Ingredient Matching**: Recommends locally available, affordable foods
+- **Deficiency Detection**: Identifies specific nutrient deficiencies
+- **Progress Tracking**: Monitor improvement over time
+
+Access it at: **http://localhost:5000/ml-recommendations**
+
+## 💬 AI Nutrition Chatbot
+
+Conversational AI assistant for nutrition queries:
+
+### Features
+- **Natural Language**: Ask questions in plain English or Hindi
+- **Contextual Responses**: Understands Karnataka Anganwadi context
+- **Meal Suggestions**: Get quick meal ideas for specific needs
+- **Nutrition Education**: Learn about nutrients, deficiencies, and healthy eating
+
+### Setup
+Set your API key in environment variables:
+```bash
+# For Gemini (recommended)
+GEMINI_API_KEY=your_api_key_here
+
+# For Groq (alternative)
+GROQ_API_KEY=your_api_key_here
+```
+
 ## 📊 Sample Results
 
 With a budget of ₹2000 for 20 children (₹14.28/child/day):
@@ -508,5 +559,5 @@ This tool helps:
 
 **Made with ❤️ for Karnataka children**
 
-**Version**: 1.0.0  
-**Last Updated**: October 2025
+**Version**: 2.0.0  
+**Last Updated**: January 2026
