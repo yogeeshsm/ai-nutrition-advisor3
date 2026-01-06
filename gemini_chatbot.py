@@ -7,8 +7,8 @@ import os
 import google.generativeai as genai
 from typing import Dict, List, Optional
 
-# Gemini API Configuration
-GEMINI_API_KEY = 'AIzaSyCtSN-cwuW9rJ6Ex8SBZo2tDbwjyu4v8V0'
+# Gemini API Configuration - Use environment variable
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
 GEMINI_MODEL = 'gemini-2.5-flash'
 
 class NutritionChatbot:
