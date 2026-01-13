@@ -24,9 +24,9 @@ A comprehensive AI-powered nutrition advisory system designed for child malnutri
 
 ```
 ai-nutrition-advisor3/
-├── app/                    # Main application servers (20 files)
+├── app/                    # Main application servers (8 files)
 ├── chatbots/              # AI chatbot implementations (4 files)
-├── models/                # ML models and training (13 files)
+├── models/                # ML models and training (12 files)
 ├── tests/                 # Test suite (35 files)
 ├── scripts/               # Setup & maintenance (29 files)
 ├── utils/                 # Utility functions (13 files)
@@ -63,9 +63,8 @@ pip install -r requirements.txt
 # Start the full application
 launch_scripts\START_FULL_APP.bat
 
-# Or start individual components
+# Or start the server
 launch_scripts\START_SERVER.bat
-launch_scripts\START_MALNUTRITION.bat
 ```
 
 ### Linux/Mac
@@ -81,14 +80,14 @@ chmod +x launch_scripts/*.sh
 ### Python Direct Launch
 
 ```bash
-# Option 1: Full server
+# Option 1: Production server (recommended)
 python app/production_server.py
 
-# Option 2: Simple server
-python app/simple_server.py
-
-# Option 3: Quick start
+# Option 2: Quick start
 python app/quick_start.py
+
+# Option 3: Flask app (for deployment)
+python app/flask_app.py
 ```
 
 ## 📊 ML Models
@@ -159,8 +158,8 @@ Key configuration files:
 ### Launch Scripts (launch_scripts/)
 - `START_SERVER.bat` - Start main server
 - `START_FULL_APP.bat` - Launch full application
-- `START_MALNUTRITION.bat` - Malnutrition predictor
-- `run.bat` - Quick run script
+- `RUN_SERVER.bat` - Quick run script
+- `DEPLOY_TO_RENDER.bat` - Render deployment helper
 - `build.sh` - Linux/Mac build script
 
 ## 🌐 API Integrations
@@ -173,10 +172,12 @@ Key configuration files:
 
 ## 📊 Monitoring & Logs
 
-Application logs are stored in the `logs/` directory:
+Application logs are automatically generated in the `logs/` directory:
 - `server_log.txt` - Server operations
 - `server_output.txt` - Server output
 - `test_output.txt` - Test results
+
+*Note: Log files are auto-generated and not tracked in version control.*
 
 ## 🚀 Deployment
 
