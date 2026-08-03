@@ -23,7 +23,7 @@ A comprehensive AI-powered nutrition advisory system designed for child malnutri
 ## 📂 Project Structure
 
 ```
-ai-nutrition-advisor/
+ai-nutrition-advisor3/
 ├── app/                    # Main application servers (8 files)
 ├── chatbots/              # AI chatbot implementations (4 files)
 ├── models/                # ML models and training (12 files)
@@ -48,8 +48,8 @@ ai-nutrition-advisor/
 
 ```bash
 # Clone the repository
-git clone https://github.com/yogeeshsm/ai-nutrition-advisor.git
-cd ai-nutrition-advisor
+git clone https://github.com/yogeeshsm/ai-nutrition-advisor3.git
+cd ai-nutrition-advisor3
 
 # Install dependencies
 pip install -r requirements.txt
