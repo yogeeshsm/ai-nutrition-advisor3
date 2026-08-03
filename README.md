@@ -23,7 +23,7 @@ A comprehensive AI-powered nutrition advisory system designed for child malnutri
 ## 📂 Project Structure
 
 ```
-ai-nutrition-advisor3/
+ai-nutrition-advisor/
 ├── app/                    # Main application servers (8 files)
 ├── chatbots/              # AI chatbot implementations (4 files)
 ├── models/                # ML models and training (12 files)
@@ -42,14 +42,14 @@ ai-nutrition-advisor3/
 
 ### Prerequisites
 - Python 3.8+
-- pip package manager
+- pip
 
 ### Setup
 
 ```bash
 # Clone the repository
-git clone https://github.com/yogeeshsm/ai-nutrition-advisor3.git
-cd ai-nutrition-advisor3
+git clone https://github.com/yogeeshsm/ai-nutrition-advisor.git
+cd ai-nutrition-advisor
 
 # Install dependencies
 pip install -r requirements.txt
@@ -67,7 +67,7 @@ launch_scripts\START_FULL_APP.bat
 launch_scripts\START_SERVER.bat
 ```
 
-### Linux/Mac
+### Linux/macOS
 
 ```bash
 # Make scripts executable
@@ -90,18 +90,15 @@ python app/quick_start.py
 python app/flask_app.py
 ```
 
-## 📊 ML Models
+## 📊 Machine Learning Models
 
 The system uses trained machine learning models for:
 - Malnutrition risk prediction
 - Meal recommendations
 - Nutritional analysis
 
-Train or update models:
-```bash
-python models/train_malnutrition_model.py
-python models/prepare_dataset.py
-```
+Pre-trained model artifacts are included in the `models/` directory.
+If you maintain custom training scripts in your branch, run those scripts from their actual paths to retrain or update models.
 
 ## 🤖 AI Chatbot
 
@@ -114,6 +111,7 @@ Configure API keys in environment variables or config files.
 ## 🧪 Testing
 
 Run comprehensive tests:
+
 ```bash
 # All tests
 python tests/test_all.py
@@ -131,11 +129,13 @@ The system supports:
 - MySQL (production, scalable)
 
 Migrate to MySQL:
+
 ```bash
 python scripts/migrate_to_mysql.py
 ```
 
 Initialize production data:
+
 ```bash
 python scripts/init_production_data.py
 ```
@@ -182,11 +182,13 @@ Application logs are automatically generated in the `logs/` directory:
 ## 🚀 Deployment
 
 ### Render Deployment
+
 ```bash
 launch_scripts\DEPLOY_TO_RENDER.bat
 ```
 
 ### Production Server
+
 ```bash
 python app/production_server.py
 ```
@@ -220,7 +222,7 @@ Additional documentation available in `docs/`:
 
 ## 🤝 Contributing
 
-Contributions welcome! Please ensure:
+Contributions are welcome. Please ensure:
 1. Tests pass: `python tests/test_all.py`
 2. Code follows project structure
 3. Documentation updated
